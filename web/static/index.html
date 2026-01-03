@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O'Reilly Downloader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>O'Reilly Downloader</h1>
+        <div class="header-right">
+            <div id="auth-status" class="status"></div>
+            <button id="login-btn" class="login-btn hidden">Set Cookies</button>
+        </div>
+    </header>
+
+    <main>
+        <section id="search-section">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search by title, author, or ISBN...">
+                <div id="search-loader" class="search-loader hidden"></div>
+            </div>
+            <div id="search-results"></div>
+        </section>
+    </main>
+
+    <div id="cookie-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Set Session Cookies</h3>
+            <p class="modal-instructions">
+                1. Open <a href="https://learning.oreilly.com" target="_blank">learning.oreilly.com</a> and log in<br>
+                2. Open browser console (F12 → Console)<br>
+                3. Paste this command and press Enter:<br>
+                <code>JSON.stringify(document.cookie.split(';').map(c=>c.split('=')).reduce((r,[k,v])=>({...r,[k.trim()]:v?.trim()}),{}))</code><br>
+                4. Copy the output and paste below:
+            </p>
+            <textarea id="cookie-input" placeholder='{"cookie_name": "value", ...}'></textarea>
+            <p id="cookie-error" class="error hidden"></p>
+            <div class="modal-actions">
+                <button id="cancel-modal-btn" class="btn-secondary">Cancel</button>
+                <button id="save-cookies-btn" class="btn-primary">Save Cookies</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const API = '';
+        let currentExpandedCard = null;
+        let selectedResultIndex = -1;
+
+        async function checkAuth() {
+            const res = await fetch(`${API}/api/status`);
+            const data = await res.json();
+            const el = document.getElementById('auth-status');
+            const loginBtn = document.getElementById('login-btn');
+            if (data.valid) {
+                el.textContent = 'Session: Valid';
+                el.className = 'status valid';
+                loginBtn.classList.add('hidden');
+            } else {
+                el.textContent = `Session: ${data.reason}`;
+                el.className = 'status invalid';
+                loginBtn.classList.remove('hidden');
+            }
+        }
+
+        function showCookieModal() {
+            document.getElementById('cookie-modal').classList.remove('hidden');
+            document.getElementById('cookie-input').value = '';
+            document.getElementById('cookie-error').classList.add('hidden');
+        }
+
+        function hideCookieModal() {
+            document.getElementById('cookie-modal').classList.add('hidden');
+        }
+
+        async function saveCookies() {
+            const input = document.getElementById('cookie-input').value.trim();
+            const errorEl = document.getElementById('cookie-error');
+
+            if (!input) {
+                errorEl.textContent = 'Please paste your cookie JSON';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            let cookies;
+            try {
+                cookies = JSON.parse(input);
+                if (typeof cookies !== 'object' || Array.isArray(cookies)) {
+                    throw new Error('Must be a JSON object');
+                }
+            } catch (e) {
+                errorEl.textContent = 'Invalid JSON format: ' + e.message;
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API}/api/cookies`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(cookies)
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    errorEl.textContent = data.error;
+                    errorEl.classList.remove('hidden');
+                    return;
+                }
+
+                hideCookieModal();
+                checkAuth();
+            } catch (err) {
+                errorEl.textContent = 'Failed to save cookies';
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('login-btn').onclick = showCookieModal;
+        document.getElementById('cancel-modal-btn').onclick = hideCookieModal;
+        document.getElementById('save-cookies-btn').onclick = saveCookies;
+        document.getElementById('cookie-modal').onclick = (e) => {
+            if (e.target.id === 'cookie-modal') hideCookieModal();
+        };
+
+        // Default output directory (loaded once)
+        let defaultOutputDir = '';
+
+        async function loadDefaultOutputDir() {
+            try {
+                const res = await fetch(`${API}/api/settings`);
+                const data = await res.json();
+                defaultOutputDir = data.output_dir;
+            } catch (err) {
+                console.error('Failed to load default output dir:', err);
+            }
+        }
+
+        async function search(query) {
+            document.getElementById('search-loader').classList.remove('hidden');
+            const res = await fetch(`${API}/api/search?q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+            document.getElementById('search-loader').classList.add('hidden');
+            const container = document.getElementById('search-results');
+            container.innerHTML = '';
+            container.classList.remove('has-expanded');
+            currentExpandedCard = null;
+            selectedResultIndex = -1;
+
+            for (const book of data.results || []) {
+                const div = document.createElement('div');
+                div.className = 'search-result';
+                div.dataset.bookId = book.id;
+                div.innerHTML = `
+                    <div class="result-summary">
+                        <img src="${book.cover_url}" alt="">
+                        <div>
+                            <strong>${book.title}</strong>
+                            <p>${book.authors?.join(', ') || ''}</p>
+                        </div>
+                    </div>
+                    <div class="result-expanded hidden">
+                        <button class="close-btn" onclick="event.stopPropagation(); collapseBook();">&times;</button>
+                        <div class="book-detail">
+                            <img class="cover-large" src="${book.cover_url}" alt="">
+                            <div class="book-info">
+                                <h2 class="book-title">${book.title}</h2>
+                                <p class="book-authors">By: ${book.authors?.join(', ') || 'Unknown'}</p>
+                                <p class="book-publishers">Publisher: Loading...</p>
+                                <p class="book-pages">Pages: Loading...</p>
+                                <div class="book-description">Loading details...</div>
+                            </div>
+                        </div>
+                        <div class="download-options">
+                            <span class="format-label">Output Format:</span>
+                            <div class="format-checkboxes">
+                                <label class="format-option">
+                                    <input type="checkbox" class="format-epub" checked>
+                                    <span class="format-name">EPUB</span>
+                                    <span class="format-desc">Standard e-book format</span>
+                                </label>
+                                <label class="format-option">
+                                    <input type="checkbox" class="format-pdf">
+                                    <span class="format-name">PDF</span>
+                                    <span class="format-desc">Single PDF file</span>
+                                </label>
+                                <label class="format-option">
+                                    <input type="checkbox" class="format-pdf-chapters">
+                                    <span class="format-name">PDF Chapters</span>
+                                    <span class="format-desc">Separate PDF per chapter</span>
+                                </label>
+                                <label class="format-option">
+                                    <input type="checkbox" class="format-md">
+                                    <span class="format-name">Markdown</span>
+                                    <span class="format-desc">Plain text for editing</span>
+                                </label>
+                            </div>
+                            <div class="format-group-label">AI/LLM Formats:</div>
+                            <div class="format-checkboxes ai-formats">
+                                <label class="format-option">
+                                    <input type="checkbox" class="format-plaintext">
+                                    <span class="format-name">Plain Text</span>
+                                    <span class="format-desc">Clean .txt for LLMs</span>
+                                </label>
+                                <label class="format-option">
+                                    <input type="checkbox" class="format-json">
+                                    <span class="format-name">JSON</span>
+                                    <span class="format-desc">Structured with metadata</span>
+                                </label>
+                                <label class="format-option">
+                                    <input type="checkbox" class="format-chunks">
+                                    <span class="format-name">Chunked JSONL</span>
+                                    <span class="format-desc">RAG-ready chunks</span>
+                                </label>
+                            </div>
+                            <div class="format-group-label">Options:</div>
+                            <div class="format-checkboxes">
+                                <label class="format-option">
+                                    <input type="checkbox" class="skip-images">
+                                    <span class="format-name">Skip Images</span>
+                                    <span class="format-desc">Smaller file, faster download</span>
+                                </label>
+                            </div>
+                            <div class="chunking-options hidden">
+                                <label class="chunk-option">
+                                    <span>Chunk size (tokens):</span>
+                                    <input type="number" class="chunk-size-input" value="4000" min="500" max="16000">
+                                </label>
+                                <label class="chunk-option">
+                                    <span>Overlap (tokens):</span>
+                                    <input type="number" class="chunk-overlap-input" value="200" min="0" max="1000">
+                                </label>
+                            </div>
+                            <div class="output-dir-section">
+                                <label class="output-dir-label">Save to:</label>
+                                <input type="text" class="output-dir-input" placeholder="Loading..." readonly>
+                                <button class="browse-btn">Browse...</button>
+                            </div>
+                            <div class="download-actions">
+                                <button class="download-btn">Download</button>
+                                <button class="cancel-btn hidden">Cancel</button>
+                            </div>
+                        </div>
+                        <div class="chapter-selection">
+                            <button class="toggle-chapters-btn">Select Chapters</button>
+                            <div class="chapters-list hidden">
+                                <div class="chapters-header">
+                                    <button class="select-all-btn">Select All</button>
+                                    <button class="select-none-btn">Select None</button>
+                                    <span class="chapters-count"></span>
+                                </div>
+                                <div class="chapters-items"></div>
+                            </div>
+                        </div>
+                        <div class="progress-section hidden">
+                            <h4>Download Progress</h4>
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                            </div>
+                            <p class="progress-status"></p>
+                        </div>
+                        <div class="result-section hidden">
+                            <h4>Download Complete</h4>
+                            <p class="result-message"></p>
+                        </div>
+                    </div>
+                `;
+
+                // Click on summary to expand
+                div.querySelector('.result-summary').onclick = () => expandBook(div, book.id);
+
+                // Download button handler
+                div.querySelector('.download-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    download(div);
+                };
+
+                // Cancel button handler
+                div.querySelector('.cancel-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    cancelDownload(div);
+                };
+
+                // Chapter selection handlers
+                div.querySelector('.toggle-chapters-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    toggleChapters(div, book.id);
+                };
+                div.querySelector('.select-all-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    selectAllChapters(div, true);
+                };
+                div.querySelector('.select-none-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    selectAllChapters(div, false);
+                };
+
+                // Browse button handler
+                div.querySelector('.browse-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    browseOutputDir(div);
+                };
+
+                // Show/hide chunking options when chunks format is selected
+                div.querySelector('.format-chunks').addEventListener('change', (e) => {
+                    const chunkingOptions = div.querySelector('.chunking-options');
+                    if (e.target.checked) {
+                        chunkingOptions.classList.remove('hidden');
+                    } else {
+                        chunkingOptions.classList.add('hidden');
+                    }
+                });
+
+                container.appendChild(div);
+            }
+        }
+
+        async function expandBook(cardElement, bookId) {
+            // Collapse any currently expanded card
+            if (currentExpandedCard && currentExpandedCard !== cardElement) {
+                collapseBook();
+            }
+
+            // If clicking on already expanded card, do nothing
+            if (cardElement.classList.contains('expanded')) {
+                return;
+            }
+
+            // Immediately expand with loading state
+            const expanded = cardElement.querySelector('.result-expanded');
+            cardElement.classList.add('expanded', 'loading');
+            expanded.classList.remove('hidden');
+            document.getElementById('search-results').classList.add('has-expanded');
+            currentExpandedCard = cardElement;
+
+            // Scroll the card into view
+            cardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            // Set output directory input
+            const outputDirInput = expanded.querySelector('.output-dir-input');
+            outputDirInput.value = defaultOutputDir || 'Loading...';
+
+            // Fetch full book details
+            try {
+                const res = await fetch(`${API}/api/book/${bookId}`);
+                const book = await res.json();
+
+                // Populate expanded section with full details
+                expanded.querySelector('.book-publishers').textContent = `Publisher: ${book.publishers?.join(', ') || 'Unknown'}`;
+                expanded.querySelector('.book-pages').textContent = `Pages: ${book.virtual_pages || 'N/A'}`;
+                expanded.querySelector('.book-description').innerHTML = book.description || 'No description available.';
+            } catch (error) {
+                expanded.querySelector('.book-description').textContent = 'Failed to load details.';
+            }
+
+            // Remove loading state
+            cardElement.classList.remove('loading');
+        }
+
+        function collapseBook() {
+            if (currentExpandedCard) {
+                currentExpandedCard.classList.remove('expanded');
+                currentExpandedCard.querySelector('.result-expanded').classList.add('hidden');
+
+                // Reset progress/result sections for next use
+                const progressSection = currentExpandedCard.querySelector('.progress-section');
+                const resultSection = currentExpandedCard.querySelector('.result-section');
+                progressSection.classList.add('hidden');
+                resultSection.classList.add('hidden');
+
+                document.getElementById('search-results').classList.remove('has-expanded');
+                currentExpandedCard = null;
+            }
+        }
+
+        // Chapter selection cache
+        const chaptersCache = {};
+
+        async function toggleChapters(cardElement, bookId) {
+            const chaptersList = cardElement.querySelector('.chapters-list');
+            const toggleBtn = cardElement.querySelector('.toggle-chapters-btn');
+
+            if (!chaptersList.classList.contains('hidden')) {
+                chaptersList.classList.add('hidden');
+                toggleBtn.textContent = 'Select Chapters';
+                return;
+            }
+
+            chaptersList.classList.remove('hidden');
+            toggleBtn.textContent = 'Hide Chapters';
+
+            // Load chapters if not cached
+            if (!chaptersCache[bookId]) {
+                const itemsContainer = cardElement.querySelector('.chapters-items');
+                itemsContainer.innerHTML = '<p class="loading-chapters">Loading chapters...</p>';
+
+                try {
+                    const res = await fetch(`${API}/api/book/${bookId}/chapters`);
+                    const data = await res.json();
+                    chaptersCache[bookId] = data.chapters;
+                    renderChapters(cardElement, data.chapters);
+                } catch (err) {
+                    itemsContainer.innerHTML = '<p class="error">Failed to load chapters</p>';
+                }
+            }
+        }
+
+        function renderChapters(cardElement, chapters) {
+            const itemsContainer = cardElement.querySelector('.chapters-items');
+
+            itemsContainer.innerHTML = chapters.map((ch) => `
+                <label class="chapter-item">
+                    <input type="checkbox" class="chapter-checkbox" data-index="${ch.index}" checked>
+                    <span class="chapter-title">${ch.title || 'Chapter ' + (ch.index + 1)}</span>
+                    ${ch.pages ? `<span class="chapter-meta">${ch.pages} pages</span>` : ''}
+                </label>
+            `).join('');
+
+            updateChapterCount(cardElement);
+
+            // Add checkbox listeners
+            itemsContainer.querySelectorAll('.chapter-checkbox').forEach(cb => {
+                cb.addEventListener('change', () => updateChapterCount(cardElement));
+            });
+        }
+
+        function updateChapterCount(cardElement) {
+            const checkboxes = cardElement.querySelectorAll('.chapter-checkbox');
+            const checked = cardElement.querySelectorAll('.chapter-checkbox:checked');
+            cardElement.querySelector('.chapters-count').textContent =
+                `${checked.length}/${checkboxes.length} selected`;
+        }
+
+        function selectAllChapters(cardElement, selectAll) {
+            cardElement.querySelectorAll('.chapter-checkbox').forEach(cb => cb.checked = selectAll);
+            updateChapterCount(cardElement);
+        }
+
+        async function download(cardElement) {
+            const bookId = cardElement.dataset.bookId;
+            const formats = [];
+            if (cardElement.querySelector('.format-epub').checked) formats.push('epub');
+            if (cardElement.querySelector('.format-pdf').checked) formats.push('pdf');
+            if (cardElement.querySelector('.format-pdf-chapters').checked) formats.push('pdf-chapters');
+            if (cardElement.querySelector('.format-md').checked) formats.push('markdown');
+            // AI/LLM formats
+            if (cardElement.querySelector('.format-plaintext').checked) formats.push('plaintext');
+            if (cardElement.querySelector('.format-json').checked) formats.push('json');
+            if (cardElement.querySelector('.format-chunks').checked) formats.push('chunks');
+
+            if (formats.length === 0) {
+                const checkboxes = cardElement.querySelector('.format-checkboxes');
+                checkboxes.style.animation = 'shake 0.5s';
+                setTimeout(() => checkboxes.style.animation = '', 500);
+                return;
+            }
+
+            // Get selected chapters (null means all chapters)
+            const chapterCheckboxes = cardElement.querySelectorAll('.chapter-checkbox');
+            let selectedChapters = null;
+            if (chapterCheckboxes.length > 0) {
+                const checkedBoxes = cardElement.querySelectorAll('.chapter-checkbox:checked');
+                // Only send selection if not all chapters are selected
+                if (checkedBoxes.length < chapterCheckboxes.length) {
+                    selectedChapters = Array.from(checkedBoxes).map(cb => parseInt(cb.dataset.index));
+                }
+            }
+
+            const progressSection = cardElement.querySelector('.progress-section');
+            const resultSection = cardElement.querySelector('.result-section');
+            const downloadBtn = cardElement.querySelector('.download-btn');
+            const cancelBtn = cardElement.querySelector('.cancel-btn');
+            const progressFill = cardElement.querySelector('.progress-fill');
+
+            progressSection.classList.remove('hidden');
+            resultSection.classList.add('hidden');
+            downloadBtn.classList.add('hidden');
+            cancelBtn.classList.remove('hidden');
+            progressFill.style.width = '0%';
+
+            // Get custom output directory if changed
+            const outputDirInput = cardElement.querySelector('.output-dir-input');
+            const outputDir = outputDirInput.value.trim();
+
+            const requestBody = {book_id: bookId, format: formats.join(',')};
+            if (selectedChapters !== null) {
+                requestBody.chapters = selectedChapters;
+            }
+            if (outputDir && outputDir !== defaultOutputDir) {
+                requestBody.output_dir = outputDir;
+            }
+            // Add chunking options if chunks format is selected
+            if (formats.includes('chunks')) {
+                const chunkSize = parseInt(cardElement.querySelector('.chunk-size-input').value) || 4000;
+                const chunkOverlap = parseInt(cardElement.querySelector('.chunk-overlap-input').value) || 200;
+                requestBody.chunking = {
+                    chunk_size: chunkSize,
+                    overlap: chunkOverlap
+                };
+            }
+            // Add skip_images option if checked
+            if (cardElement.querySelector('.skip-images').checked) {
+                requestBody.skip_images = true;
+            }
+
+            const res = await fetch(`${API}/api/download`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(requestBody)
+            });
+
+            const result = await res.json();
+
+            if (result.error) {
+                cardElement.querySelector('.progress-status').textContent = `Error: ${result.error}`;
+                downloadBtn.classList.remove('hidden');
+                cancelBtn.classList.add('hidden');
+                return;
+            }
+
+            // Download started, poll for progress
+            pollProgress(cardElement);
+        }
+
+        function formatETA(seconds) {
+            if (seconds < 60) return `${seconds}s`;
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            if (mins < 60) return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+            const hours = Math.floor(mins / 60);
+            const remainMins = mins % 60;
+            return `${hours}h ${remainMins}m`;
+        }
+
+        async function cancelDownload(cardElement) {
+            const cancelBtn = cardElement.querySelector('.cancel-btn');
+            cancelBtn.disabled = true;
+            cancelBtn.textContent = 'Cancelling...';
+
+            try {
+                await fetch(`${API}/api/cancel`, { method: 'POST' });
+                // Progress polling will handle the status update
+            } catch (err) {
+                console.error('Cancel request failed:', err);
+            }
+        }
+
+        async function browseOutputDir(cardElement) {
+            const browseBtn = cardElement.querySelector('.browse-btn');
+            const outputDirInput = cardElement.querySelector('.output-dir-input');
+
+            browseBtn.disabled = true;
+            browseBtn.textContent = 'Opening...';
+
+            try {
+                const res = await fetch(`${API}/api/settings/output-dir`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ browse: true })
+                });
+                const data = await res.json();
+
+                if (data.success && data.path) {
+                    outputDirInput.value = data.path;
+                } else if (data.error) {
+                    console.error('Browse failed:', data.error);
+                }
+                // cancelled is ok, just do nothing
+            } catch (err) {
+                console.error('Browse request failed:', err);
+            }
+
+            browseBtn.disabled = false;
+            browseBtn.textContent = 'Browse...';
+        }
+
+        async function revealFile(path) {
+            try {
+                const res = await fetch(`${API}/api/reveal`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path })
+                });
+                const data = await res.json();
+                if (data.error) {
+                    console.error('Reveal failed:', data.error);
+                }
+            } catch (err) {
+                console.error('Reveal request failed:', err);
+            }
+        }
+
+        function formatPathWithReveal(label, path) {
+            // Escape single quotes in path for onclick
+            const escapedPath = path.replace(/'/g, "\\'");
+            return `<span class="file-path">
+                <strong>${label}:</strong> <span class="path-text">${path}</span>
+                <button class="reveal-btn" onclick="revealFile('${escapedPath}')">Reveal</button>
+            </span>`;
+        }
+
+        async function pollProgress(cardElement) {
+            const res = await fetch(`${API}/api/progress`);
+            const data = await res.json();
+
+            const progressFill = cardElement.querySelector('.progress-fill');
+            const progressStatus = cardElement.querySelector('.progress-status');
+            const progressSection = cardElement.querySelector('.progress-section');
+            const resultSection = cardElement.querySelector('.result-section');
+            const downloadBtn = cardElement.querySelector('.download-btn');
+            const cancelBtn = cardElement.querySelector('.cancel-btn');
+
+            // Build status message
+            let status = data.status || 'waiting';
+            const details = [];
+
+            // Show chapter progress
+            if (data.current_chapter && data.total_chapters) {
+                details.push(`${data.current_chapter}/${data.total_chapters}`);
+            }
+
+            // Show percentage
+            if (typeof data.percentage === 'number') {
+                details.push(`${data.percentage}%`);
+                progressFill.style.width = `${data.percentage}%`;
+            }
+
+            // Show ETA
+            if (data.eta_seconds && data.eta_seconds > 0) {
+                details.push(`~${formatETA(data.eta_seconds)} left`);
+            }
+
+            // Show chapter title
+            if (data.chapter_title) {
+                const title = data.chapter_title.length > 35
+                    ? data.chapter_title.substring(0, 35) + '...'
+                    : data.chapter_title;
+                status = `Processing: ${title}`;
+            }
+
+            const statusText = details.length > 0
+                ? `${status} (${details.join(' • ')})`
+                : status;
+            progressStatus.textContent = statusText;
+
+            // Helper to restore button state
+            function restoreButtons() {
+                downloadBtn.classList.remove('hidden');
+                downloadBtn.disabled = false;
+                cancelBtn.classList.add('hidden');
+                cancelBtn.disabled = false;
+                cancelBtn.textContent = 'Cancel';
+            }
+
+            // Handle completion
+            if (data.status === 'completed') {
+                restoreButtons();
+                progressSection.classList.add('hidden');
+                resultSection.classList.remove('hidden');
+                let msg = `Downloaded: ${data.title || 'Book'}`;
+                if (data.epub) msg += `<br>${formatPathWithReveal('EPUB', data.epub)}`;
+                if (data.pdf) {
+                    if (Array.isArray(data.pdf)) {
+                        msg += `<br><strong>PDF:</strong> ${data.pdf.length} chapter files`;
+                    } else {
+                        msg += `<br>${formatPathWithReveal('PDF', data.pdf)}`;
+                    }
+                }
+                if (data.markdown) msg += `<br>${formatPathWithReveal('Markdown', data.markdown)}`;
+                // AI/LLM format results
+                if (data.plaintext) msg += `<br>${formatPathWithReveal('Plain Text', data.plaintext)}`;
+                if (data.json) msg += `<br>${formatPathWithReveal('JSON', data.json)}`;
+                if (data.chunks) msg += `<br>${formatPathWithReveal('Chunks', data.chunks)}`;
+                cardElement.querySelector('.result-message').innerHTML = msg;
+            } else if (data.status === 'error') {
+                restoreButtons();
+                progressStatus.textContent = `Error: ${data.error}`;
+            } else {
+                setTimeout(() => pollProgress(cardElement), 500);
+            }
+        }
+
+        // Click outside to collapse
+        document.addEventListener('click', (e) => {
+            if (currentExpandedCard && !currentExpandedCard.contains(e.target)) {
+                collapseBook();
+            }
+        });
+
+        let searchTimeout;
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            if (query.length >= 2) {
+                searchTimeout = setTimeout(() => search(query), 300);
+            } else if (query.length === 0) {
+                document.getElementById('search-results').innerHTML = '';
+                currentExpandedCard = null;
+            }
+        });
+
+        // Keyboard navigation
+        function updateSelectedResult() {
+            const results = document.querySelectorAll('.search-result');
+            results.forEach((r, i) => {
+                r.classList.toggle('keyboard-selected', i === selectedResultIndex);
+            });
+            if (selectedResultIndex >= 0 && results[selectedResultIndex]) {
+                results[selectedResultIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            const results = document.querySelectorAll('.search-result');
+            const searchInput = document.getElementById('search-input');
+
+            // Escape - close expanded card
+            if (e.key === 'Escape') {
+                if (currentExpandedCard) {
+                    collapseBook();
+                    e.preventDefault();
+                }
+                return;
+            }
+
+            // Enter in search input - trigger immediate search
+            if (e.key === 'Enter' && document.activeElement === searchInput) {
+                clearTimeout(searchTimeout);
+                const query = searchInput.value.trim();
+                if (query.length >= 2) {
+                    search(query);
+                }
+                e.preventDefault();
+                return;
+            }
+
+            // Arrow navigation only when results exist and no card expanded
+            if (!results.length || currentExpandedCard) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedResultIndex = Math.min(selectedResultIndex + 1, results.length - 1);
+                updateSelectedResult();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedResultIndex = Math.max(selectedResultIndex - 1, 0);
+                updateSelectedResult();
+            } else if (e.key === 'Enter' && selectedResultIndex >= 0) {
+                e.preventDefault();
+                const selected = results[selectedResultIndex];
+                if (selected) {
+                    expandBook(selected, selected.dataset.bookId);
+                }
+            }
+        });
+
+        checkAuth();
+        loadDefaultOutputDir();
+    </script>
+</body>
+</html>

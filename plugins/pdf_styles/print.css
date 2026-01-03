@@ -1,0 +1,288 @@
+/* PDF Print Stylesheet for O'Reilly Books */
+
+/* Page Setup */
+@page {
+    size: Letter;
+    margin: 1in 0.75in;
+
+    @bottom-center {
+        content: counter(page);
+        font-size: 9pt;
+        color: #666;
+    }
+}
+
+/* First page (cover) - no headers/footers */
+@page cover {
+    @bottom-center { content: none; }
+}
+
+/* TOC page - no page number */
+@page toc {
+    @bottom-center { content: none; }
+}
+
+/* Cover Page */
+.cover-page {
+    page: cover;
+    page-break-after: always;
+    text-align: center;
+    padding-top: 2in;
+}
+
+.cover-page img {
+    max-width: 100%;
+    max-height: 5in;
+    display: block;
+    margin: 0 auto;
+}
+
+.cover-page h1 {
+    font-size: 24pt;
+    margin-top: 1in;
+    color: #333;
+    line-height: 1.2;
+}
+
+.cover-page .authors {
+    font-size: 14pt;
+    color: #555;
+    margin-top: 0.5in;
+}
+
+.cover-page .publisher {
+    font-size: 11pt;
+    color: #777;
+    margin-top: 0.3in;
+}
+
+/* Table of Contents */
+.toc-page {
+    page: toc;
+    page-break-after: always;
+}
+
+.toc-page h2 {
+    font-size: 18pt;
+    margin-bottom: 1em;
+    color: #333;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 0.5em;
+}
+
+.toc-page ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.toc-page li {
+    margin: 0.4em 0;
+    line-height: 1.4;
+}
+
+.toc-page li ul {
+    margin-left: 1.5em;
+    margin-top: 0.3em;
+}
+
+.toc-page a {
+    color: #000;
+    text-decoration: none;
+}
+
+.toc-page a:hover {
+    text-decoration: underline;
+}
+
+/* Chapters */
+.chapter {
+    page-break-before: always;
+}
+
+.chapter:first-of-type {
+    page-break-before: auto;
+}
+
+.chapter-title {
+    font-size: 20pt;
+    margin-bottom: 1em;
+    color: #333;
+    bookmark-level: 1;
+    bookmark-label: content();
+}
+
+/* General Typography */
+body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #222;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #333;
+    page-break-after: avoid;
+}
+
+h1 { font-size: 18pt; margin-top: 1.5em; }
+h2 { font-size: 15pt; margin-top: 1.3em; bookmark-level: 2; }
+h3 { font-size: 13pt; margin-top: 1.2em; bookmark-level: 3; }
+h4 { font-size: 11pt; margin-top: 1em; }
+
+p {
+    margin: 0.8em 0;
+    orphans: 3;
+    widows: 3;
+}
+
+/* Links */
+a {
+    color: #1a0dab;
+    text-decoration: none;
+}
+
+/* Images */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+figure {
+    page-break-inside: avoid;
+    margin: 1em 0;
+    text-align: center;
+}
+
+figcaption {
+    font-size: 9pt;
+    color: #666;
+    font-style: italic;
+    margin-top: 0.5em;
+}
+
+/* Code Blocks */
+pre, code {
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
+    font-size: 9pt;
+    background: #f5f5f5;
+}
+
+code {
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+}
+
+pre {
+    padding: 0.8em;
+    overflow-x: auto;
+    page-break-inside: avoid;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+pre code {
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+}
+
+/* Tables */
+table {
+    page-break-inside: avoid;
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 10pt;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 0.5em;
+    text-align: left;
+}
+
+th {
+    background: #f5f5f5;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background: #fafafa;
+}
+
+/* Lists */
+ul, ol {
+    margin: 0.8em 0;
+    padding-left: 1.5em;
+}
+
+li {
+    margin: 0.3em 0;
+}
+
+/* Blockquotes */
+blockquote {
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    border-left: 3px solid #ddd;
+    color: #555;
+    font-style: italic;
+}
+
+/* Notes and Warnings */
+.note, .warning, .tip, .important, .caution {
+    padding: 1em;
+    margin: 1em 0;
+    border-radius: 4px;
+    page-break-inside: avoid;
+}
+
+.note {
+    background: #e7f3ff;
+    border-left: 4px solid #2196f3;
+}
+
+.warning {
+    background: #fff3e0;
+    border-left: 4px solid #ff9800;
+}
+
+.tip {
+    background: #e8f5e9;
+    border-left: 4px solid #4caf50;
+}
+
+/* Definition Lists */
+dl {
+    margin: 1em 0;
+}
+
+dt {
+    font-weight: bold;
+    margin-top: 0.5em;
+}
+
+dd {
+    margin-left: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+/* Horizontal Rule */
+hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 2em 0;
+}
+
+/* Utility Classes */
+.page-break {
+    page-break-before: always;
+}
+
+.no-break {
+    page-break-inside: avoid;
+}
