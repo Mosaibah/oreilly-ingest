@@ -55,6 +55,8 @@ class DownloaderHandler(SimpleHTTPRequestHandler):
             self._handle_progress()
         elif path == "/api/settings":
             self._handle_get_settings()
+        elif path == "/api/formats":
+            self._handle_formats()
         else:
             super().do_GET()
 
@@ -130,6 +132,15 @@ class DownloaderHandler(SimpleHTTPRequestHandler):
                 "output_dir": str(config.OUTPUT_DIR),
             }
         )
+
+    def _handle_formats(self):
+        """Return available output formats for discovery.
+
+        This endpoint allows any client (web, CLI, etc.) to discover
+        supported formats, aliases, and which formats support chapter selection.
+        """
+        from plugins.downloader import DownloaderPlugin
+        self._send_json(DownloaderPlugin.get_formats_info())
 
     def _handle_set_output_dir(self, data: dict):
         """Handle output directory selection - browse or direct path."""
@@ -244,8 +255,9 @@ class DownloaderHandler(SimpleHTTPRequestHandler):
                 self._send_json({"error": "Download already in progress"}, 409)
                 return
 
-        # Parse formats
-        formats = self._parse_formats(output_format)
+        # Parse formats using plugin (single source of truth)
+        from plugins.downloader import DownloaderPlugin
+        formats = DownloaderPlugin.parse_formats(output_format)
 
         # Start download in background thread
         thread = threading.Thread(
@@ -257,33 +269,6 @@ class DownloaderHandler(SimpleHTTPRequestHandler):
 
         # Return immediately
         self._send_json({"status": "started", "book_id": book_id})
-
-    def _parse_formats(self, format_str: str) -> list[str]:
-        """Parse format string into list of formats."""
-        formats = []
-
-        if "epub" in format_str:
-            formats.append("epub")
-        if "markdown" in format_str or "md" in format_str:
-            formats.append("markdown")
-        if "pdf-chapters" in format_str:
-            formats.append("pdf-chapters")
-        elif "pdf" in format_str:
-            formats.append("pdf")
-        if "plaintext-chapters" in format_str:
-            formats.append("plaintext-chapters")
-        elif "plaintext" in format_str or "txt" in format_str:
-            formats.append("plaintext")
-        if "jsonl" in format_str:
-            formats.extend(["json", "jsonl"])
-        elif "json" in format_str:
-            formats.append("json")
-        if "chunks" in format_str:
-            formats.append("chunks")
-        if format_str == "all":
-            formats = ["epub", "markdown", "pdf", "plaintext", "json", "chunks"]
-
-        return formats if formats else ["epub"]
 
     def _download_book_async(
         self,

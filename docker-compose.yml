@@ -1,0 +1,8 @@
+services:
+  oreilly-downloader:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./cookies.json:/app/cookies.json:ro
+      - ./output:/app/output

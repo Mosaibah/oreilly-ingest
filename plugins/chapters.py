@@ -1,25 +1,37 @@
 from .base import Plugin
+from core.types import ChapterInfo
 import config
 
 
 class ChaptersPlugin(Plugin):
-    def fetch_list(self, book_id: str) -> list[dict]:
+    """Plugin for fetching book chapters and their content."""
+
+    def fetch_list(self, book_id: str) -> list[ChapterInfo]:
+        """
+        Fetch list of chapters for a book.
+
+        Args:
+            book_id: O'Reilly book identifier
+
+        Returns:
+            List of ChapterInfo dicts with chapter metadata
+        """
         url = f"{config.API_V2}/epub-chapters/?epub_identifier=urn:orm:book:{book_id}"
-        chapters = []
+        chapters: list[ChapterInfo] = []
 
         while url:
             data = self.http.get_json(url)
             for ch in data.get("results", []):
-                chapters.append({
-                    "ourn": ch.get("ourn"),
-                    "title": ch.get("title"),
-                    "filename": self._extract_filename(ch.get("reference_id", "")),
-                    "content_url": ch.get("content_url"),
-                    "images": ch.get("related_assets", {}).get("images", []),
-                    "stylesheets": ch.get("related_assets", {}).get("stylesheets", []),
-                    "virtual_pages": ch.get("virtual_pages"),
-                    "minutes_required": ch.get("minutes_required"),
-                })
+                chapters.append(ChapterInfo(
+                    ourn=ch.get("ourn", ""),
+                    title=ch.get("title", ""),
+                    filename=self._extract_filename(ch.get("reference_id", "")),
+                    content_url=ch.get("content_url", ""),
+                    images=ch.get("related_assets", {}).get("images", []),
+                    stylesheets=ch.get("related_assets", {}).get("stylesheets", []),
+                    virtual_pages=ch.get("virtual_pages"),
+                    minutes_required=ch.get("minutes_required"),
+                ))
             url = data.get("next")
 
         return self._reorder_cover_first(chapters)
@@ -36,9 +48,10 @@ class ChaptersPlugin(Plugin):
             return reference_id.split("-/")[1]
         return reference_id
 
-    def _reorder_cover_first(self, chapters: list[dict]) -> list[dict]:
-        cover_chapters = []
-        other_chapters = []
+    def _reorder_cover_first(self, chapters: list[ChapterInfo]) -> list[ChapterInfo]:
+        """Reorder chapters to ensure cover comes first."""
+        cover_chapters: list[ChapterInfo] = []
+        other_chapters: list[ChapterInfo] = []
 
         for ch in chapters:
             filename_lower = ch["filename"].lower()

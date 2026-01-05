@@ -62,6 +62,23 @@ python main.py --host 0.0.0.0 --port 9000
 | --host | localhost | Server host |
 | --port | 8000 | Server port |
 
+## Docker
+
+### Quick Start
+
+```bash
+docker compose up
+```
+
+Open http://localhost:8000
+
+### Build and Run Manually
+
+```bash
+docker build -t oreilly-downloader .
+docker run -p 8000:8000 -v ./cookies.json:/app/cookies.json:ro -v ./output:/app/output oreilly-downloader
+```
+
 ## Configuration
 
 Edit `config.py` to customize:

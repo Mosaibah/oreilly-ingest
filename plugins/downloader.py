@@ -49,6 +49,131 @@ class DownloaderPlugin(Plugin):
     (web, CLI, scripts).
     """
 
+    # Format vocabulary - discoverable by any client
+    SUPPORTED_FORMATS = frozenset([
+        "epub",
+        "markdown",
+        "pdf",
+        "pdf-chapters",
+        "plaintext",
+        "plaintext-chapters",
+        "json",
+        "jsonl",
+        "chunks",
+    ])
+
+    # Aliases for user convenience (e.g., CLI shorthand)
+    FORMAT_ALIASES = {
+        "md": "markdown",
+        "txt": "plaintext",
+    }
+
+    # Formats that only support entire book (no chapter selection)
+    BOOK_ONLY_FORMATS = frozenset(["epub", "chunks"])
+
+    @classmethod
+    def parse_formats(cls, format_input: str | list[str]) -> list[str]:
+        """
+        Parse format specification into canonical format names.
+
+        Handles:
+        - Single format string: "epub"
+        - Comma-separated: "epub,markdown,pdf"
+        - List: ["epub", "markdown"]
+        - Aliases: "md" -> "markdown", "txt" -> "plaintext"
+        - Special "all" keyword
+
+        Args:
+            format_input: Single format, comma-separated string, or list
+
+        Returns:
+            List of canonical format names (defaults to ["epub"] if empty)
+        """
+        # Handle list input
+        if isinstance(format_input, list):
+            raw_formats = format_input
+        else:
+            # Handle "all" special case
+            if format_input == "all":
+                return ["epub", "markdown", "pdf", "plaintext", "json", "chunks"]
+
+            # Split comma-separated and clean
+            raw_formats = [f.strip().lower() for f in format_input.split(",") if f.strip()]
+
+        formats = []
+        seen = set()
+
+        for fmt in raw_formats:
+            # Apply alias
+            canonical = cls.FORMAT_ALIASES.get(fmt, fmt)
+
+            # Handle special cases
+            if canonical == "jsonl" and "json" not in seen:
+                formats.append("json")
+                seen.add("json")
+            if canonical == "jsonl":
+                formats.append("jsonl")
+                seen.add("jsonl")
+                continue
+
+            # Skip invalid or duplicate
+            if canonical not in cls.SUPPORTED_FORMATS or canonical in seen:
+                continue
+
+            formats.append(canonical)
+            seen.add(canonical)
+
+        return formats if formats else ["epub"]
+
+    @classmethod
+    def get_format_help(cls) -> dict[str, str]:
+        """
+        Return format descriptions for CLI help text or UI display.
+
+        Returns:
+            Dict mapping format name to human-readable description
+        """
+        return {
+            "epub": "Standard EPUB format (default)",
+            "markdown": "Markdown files (alias: md)",
+            "pdf": "Single PDF file",
+            "pdf-chapters": "Separate PDF per chapter",
+            "plaintext": "Plain text (alias: txt)",
+            "plaintext-chapters": "Separate text file per chapter",
+            "json": "Structured JSON export",
+            "jsonl": "JSON Lines format (includes json)",
+            "chunks": "Chunked content for LLM processing",
+        }
+
+    @classmethod
+    def supports_chapter_selection(cls, fmt: str) -> bool:
+        """
+        Check if a format supports chapter selection.
+
+        Args:
+            fmt: Format name (canonical or alias)
+
+        Returns:
+            True if format supports selecting specific chapters
+        """
+        canonical = cls.FORMAT_ALIASES.get(fmt, fmt)
+        return canonical not in cls.BOOK_ONLY_FORMATS
+
+    @classmethod
+    def get_formats_info(cls) -> dict:
+        """
+        Return complete format information for discovery endpoints.
+
+        Returns:
+            Dict with formats, aliases, book_only, and descriptions
+        """
+        return {
+            "formats": sorted(cls.SUPPORTED_FORMATS),
+            "aliases": cls.FORMAT_ALIASES,
+            "book_only": sorted(cls.BOOK_ONLY_FORMATS),
+            "descriptions": cls.get_format_help(),
+        }
+
     def download(
         self,
         book_id: str,
