@@ -9,6 +9,14 @@ let selectedResultIndex = -1;
 let defaultOutputDir = '';
 const chaptersCache = {};
 
+/**
+ * Get high-resolution cover URL for expanded view.
+ * O'Reilly provides larger covers at /covers/urn:orm:book:{id}/400w/
+ */
+function getHighResCoverUrl(bookId) {
+    return `https://learning.oreilly.com/covers/urn:orm:book:${bookId}/400w/`;
+}
+
 async function checkAuth() {
     try {
         const res = await fetch(`${API}/api/status`);
@@ -171,7 +179,7 @@ function createBookCardHTML(book) {
             <div class="relative px-5 pb-5 pt-2 border-t border-zinc-100 animate-fade-in">
                 <!-- Book Detail -->
                 <div class="flex gap-5 py-5">
-                    <img class="w-24 h-auto rounded-lg shadow-md flex-shrink-0" src="${book.cover_url}" alt="${book.title} cover">
+                    <img class="w-24 h-32 object-cover rounded-lg shadow-md flex-shrink-0" src="${getHighResCoverUrl(book.id)}" alt="${book.title} cover">
                     <div class="flex-1 min-w-0">
                         <h2 class="text-xl font-semibold text-zinc-900 leading-tight mb-1">${book.title}</h2>
                         <p class="text-[0.9375rem] text-zinc-500 mb-3">by ${book.authors?.join(', ') || 'Unknown Author'}</p>
@@ -199,29 +207,7 @@ function createBookCardHTML(book) {
                         </h4>
                         <div class="format-options flex flex-wrap gap-1.5">
                             <label class="format-option cursor-pointer">
-                                <input type="radio" name="format" value="epub" checked class="sr-only peer">
-                                <span class="flex items-center gap-1.5 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-600 transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light peer-checked:text-oreilly-blue-dark hover:bg-white hover:border-zinc-300">
-                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                                    </svg>
-                                    EPUB
-                                </span>
-                            </label>
-                            <label class="format-option cursor-pointer">
-                                <input type="radio" name="format" value="pdf" class="sr-only peer">
-                                <span class="flex items-center gap-1.5 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-600 transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light peer-checked:text-oreilly-blue-dark hover:bg-white hover:border-zinc-300">
-                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                        <polyline points="14 2 14 8 20 8"/>
-                                        <line x1="16" y1="13" x2="8" y2="13"/>
-                                        <line x1="16" y1="17" x2="8" y2="17"/>
-                                    </svg>
-                                    PDF
-                                </span>
-                            </label>
-                            <label class="format-option cursor-pointer">
-                                <input type="radio" name="format" value="markdown" class="sr-only peer">
+                                <input type="radio" name="format" value="markdown" checked class="sr-only peer">
                                 <span class="flex items-center gap-1.5 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-600 transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light peer-checked:text-oreilly-blue-dark hover:bg-white hover:border-zinc-300">
                                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -229,6 +215,16 @@ function createBookCardHTML(book) {
                                         <path d="M17 9v6l-2-2"/>
                                     </svg>
                                     Markdown
+                                </span>
+                            </label>
+                            <label class="format-option cursor-pointer">
+                                <input type="radio" name="format" value="json" class="sr-only peer">
+                                <span class="flex items-center gap-1.5 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-600 transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light peer-checked:text-oreilly-blue-dark hover:bg-white hover:border-zinc-300">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/>
+                                        <path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1"/>
+                                    </svg>
+                                    JSON
                                 </span>
                             </label>
                             <label class="format-option cursor-pointer">
@@ -243,16 +239,18 @@ function createBookCardHTML(book) {
                                 </span>
                             </label>
                             <label class="format-option cursor-pointer">
-                                <input type="radio" name="format" value="json" class="sr-only peer">
+                                <input type="radio" name="format" value="pdf" class="sr-only peer">
                                 <span class="flex items-center gap-1.5 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-600 transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light peer-checked:text-oreilly-blue-dark hover:bg-white hover:border-zinc-300">
                                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                        <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/>
-                                        <path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1"/>
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                        <line x1="16" y1="13" x2="8" y2="13"/>
+                                        <line x1="16" y1="17" x2="8" y2="17"/>
                                     </svg>
-                                    JSON
+                                    PDF
                                 </span>
                             </label>
-                            <label class="format-option cursor-pointer">
+                            <label class="format-option cursor-pointer relative">
                                 <input type="radio" name="format" value="chunks" class="sr-only peer">
                                 <span class="flex items-center gap-1.5 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-600 transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light peer-checked:text-oreilly-blue-dark hover:bg-white hover:border-zinc-300">
                                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -262,72 +260,59 @@ function createBookCardHTML(book) {
                                         <rect x="14" y="14" width="7" height="7"/>
                                     </svg>
                                     Chunks
-                                    <span class="text-[0.5625rem] font-bold uppercase px-1.5 py-0.5 bg-zinc-200 text-zinc-500 rounded peer-checked:bg-oreilly-blue peer-checked:text-white">RAG</span>
+                                </span>
+                                <span class="absolute -top-1.5 -right-1.5 text-[0.5rem] font-bold uppercase px-1 py-px bg-emerald-500 text-white rounded shadow-sm peer-checked:bg-oreilly-blue">RAG</span>
+                            </label>
+                            <label class="format-option cursor-pointer">
+                                <input type="radio" name="format" value="epub" class="sr-only peer">
+                                <span class="flex items-center gap-1.5 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-600 transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light peer-checked:text-oreilly-blue-dark hover:bg-white hover:border-zinc-300">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                    </svg>
+                                    EPUB
                                 </span>
                             </label>
                         </div>
                     </div>
 
-                    <!-- Step 2: Scope Selection -->
-                    <div class="scope-selection">
+                    <!-- Step 2: Chapters Selection -->
+                    <div class="chapters-selection">
                         <h4 class="flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-400 mb-3">
                             <span class="inline-flex items-center justify-center w-[18px] h-[18px] bg-oreilly-blue text-white text-[0.625rem] font-bold rounded-full">2</span>
-                            Scope
+                            Chapters
                         </h4>
-                        <div class="scope-options grid grid-cols-3 gap-2">
-                            <label class="scope-option cursor-pointer">
-                                <input type="radio" name="scope" value="book" checked class="sr-only peer">
+                        <div class="chapters-options grid grid-cols-2 gap-2">
+                            <label class="chapters-option cursor-pointer">
+                                <input type="radio" name="chapters-scope" value="all" checked class="sr-only peer">
                                 <span class="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-lg transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light hover:bg-white hover:border-zinc-300">
-                                    <span class="flex items-center justify-center w-8 h-8 bg-white rounded-md peer-checked:bg-oreilly-blue">
-                                        <svg class="w-4 h-4 text-zinc-400 peer-checked:text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <span class="flex items-center justify-center w-8 h-8 bg-white rounded-md shadow-sm">
+                                        <svg class="w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                                             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                                         </svg>
                                     </span>
                                     <span class="flex flex-col min-w-0">
-                                        <span class="text-sm font-medium text-zinc-700 peer-checked:text-oreilly-blue-dark">Entire Book</span>
-                                        <span class="text-[0.6875rem] text-zinc-400">Single file</span>
+                                        <span class="text-sm font-medium text-zinc-700">All Chapters</span>
+                                        <span class="text-[0.6875rem] text-zinc-400">Download everything</span>
                                     </span>
                                 </span>
                             </label>
-                            <label class="scope-option cursor-pointer">
-                                <input type="radio" name="scope" value="chapters" class="sr-only peer">
+                            <label class="chapters-option cursor-pointer">
+                                <input type="radio" name="chapters-scope" value="select" class="sr-only peer">
                                 <span class="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-lg transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light hover:bg-white hover:border-zinc-300">
-                                    <span class="flex items-center justify-center w-8 h-8 bg-white rounded-md peer-checked:bg-oreilly-blue">
-                                        <svg class="w-4 h-4 text-zinc-400 peer-checked:text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
-                                        </svg>
-                                    </span>
-                                    <span class="flex flex-col min-w-0">
-                                        <span class="text-sm font-medium text-zinc-700 peer-checked:text-oreilly-blue-dark">All Chapters</span>
-                                        <span class="text-[0.6875rem] text-zinc-400">Separate files</span>
-                                    </span>
-                                </span>
-                            </label>
-                            <label class="scope-option cursor-pointer">
-                                <input type="radio" name="scope" value="select" class="sr-only peer">
-                                <span class="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-lg transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light hover:bg-white hover:border-zinc-300">
-                                    <span class="flex items-center justify-center w-8 h-8 bg-white rounded-md peer-checked:bg-oreilly-blue">
-                                        <svg class="w-4 h-4 text-zinc-400 peer-checked:text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <span class="flex items-center justify-center w-8 h-8 bg-white rounded-md shadow-sm">
+                                        <svg class="w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <path d="M9 11l3 3L22 4"/>
                                             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                                         </svg>
                                     </span>
                                     <span class="flex flex-col min-w-0">
-                                        <span class="text-sm font-medium text-zinc-700 peer-checked:text-oreilly-blue-dark">Select Chapters</span>
-                                        <span class="text-[0.6875rem] text-zinc-400">Choose specific</span>
+                                        <span class="text-sm font-medium text-zinc-700">Select Chapters</span>
+                                        <span class="text-[0.6875rem] text-zinc-400">Pick which ones</span>
                                     </span>
                                 </span>
                             </label>
-                        </div>
-                        <!-- Scope locked notice -->
-                        <div class="scope-locked-notice hidden flex items-center gap-2 p-3 mt-2 bg-zinc-50 border border-dashed border-zinc-200 rounded-lg text-sm text-zinc-500">
-                            <svg class="w-4 h-4 flex-shrink-0 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="16" x2="12" y2="12"/>
-                                <line x1="12" y1="8" x2="12.01" y2="8"/>
-                            </svg>
-                            <span>Entire book only for this format</span>
                         </div>
                     </div>
 
@@ -341,6 +326,54 @@ function createBookCardHTML(book) {
                             </div>
                         </div>
                         <div class="chapters-list max-h-52 overflow-y-auto space-y-0.5"></div>
+                    </div>
+
+                    <!-- Step 3: Output Structure -->
+                    <div class="output-selection mt-5">
+                        <h4 class="flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-400 mb-3">
+                            <span class="inline-flex items-center justify-center w-[18px] h-[18px] bg-oreilly-blue text-white text-[0.625rem] font-bold rounded-full">3</span>
+                            Output
+                        </h4>
+                        <div class="output-options grid grid-cols-2 gap-2">
+                            <label class="output-option cursor-pointer">
+                                <input type="radio" name="output-style" value="combined" checked class="sr-only peer">
+                                <span class="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-lg transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light hover:bg-white hover:border-zinc-300">
+                                    <span class="flex items-center justify-center w-8 h-8 bg-white rounded-md shadow-sm">
+                                        <svg class="w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                        </svg>
+                                    </span>
+                                    <span class="flex flex-col min-w-0">
+                                        <span class="text-sm font-medium text-zinc-700">Combined</span>
+                                        <span class="text-[0.6875rem] text-zinc-400">One book file</span>
+                                    </span>
+                                </span>
+                            </label>
+                            <label class="output-option cursor-pointer">
+                                <input type="radio" name="output-style" value="separate" class="sr-only peer">
+                                <span class="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-lg transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light hover:bg-white hover:border-zinc-300">
+                                    <span class="flex items-center justify-center w-8 h-8 bg-white rounded-md shadow-sm">
+                                        <svg class="w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+                                        </svg>
+                                    </span>
+                                    <span class="flex flex-col min-w-0">
+                                        <span class="text-sm font-medium text-zinc-700">Separate</span>
+                                        <span class="text-[0.6875rem] text-zinc-400">One file per chapter</span>
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                        <!-- Output locked notice -->
+                        <div class="output-locked-notice hidden flex items-center gap-2 p-3 mt-2 bg-zinc-50 border border-dashed border-zinc-200 rounded-lg text-sm text-zinc-500">
+                            <svg class="w-4 h-4 flex-shrink-0 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            <span>Combined only for this format</span>
+                        </div>
                     </div>
                 </div>
 
@@ -406,8 +439,8 @@ function createBookCardHTML(book) {
 
                 <!-- Action Bar -->
                 <div class="flex justify-end gap-2 pt-5 border-t border-zinc-100">
-                    <button class="cancel-btn hidden px-5 py-2.5 text-sm font-medium text-zinc-600 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 transition-colors">Cancel</button>
-                    <button class="download-btn px-6 py-2.5 text-sm font-medium text-white bg-oreilly-blue hover:bg-oreilly-blue-dark rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed">Download</button>
+                    <button class="cancel-btn hidden px-5 py-2 text-sm font-medium text-zinc-600 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 transition-colors">Cancel</button>
+                    <button class="download-btn px-6 py-2 text-sm font-medium text-white bg-oreilly-blue hover:bg-oreilly-blue-dark rounded-lg transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed">Download</button>
                 </div>
             </div>
         </div>
@@ -443,10 +476,17 @@ function setupBookCardEvents(div, book) {
         });
     });
 
-    // Scope selection - show/hide chapter picker
-    div.querySelectorAll('input[name="scope"]').forEach(radio => {
+    // Chapters scope selection - show/hide chapter picker
+    div.querySelectorAll('input[name="chapters-scope"]').forEach(radio => {
         radio.addEventListener('change', (e) => {
-            handleScopeChange(div, e.target.value, book.id);
+            handleChaptersScopeChange(div, e.target.value, book.id);
+        });
+    });
+
+    // Output style selection
+    div.querySelectorAll('input[name="output-style"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            // No special handling needed, just tracks selection
         });
     });
 
@@ -478,12 +518,13 @@ function setupBookCardEvents(div, book) {
     });
 }
 
-// Formats that only support entire book scope
+// Formats that only support combined output (entire book as single file)
 const BOOK_ONLY_FORMATS = ['epub', 'chunks'];
 
 function handleFormatChange(cardElement, format, bookId) {
-    const scopeOptions = cardElement.querySelector('.scope-options');
-    const lockedNotice = cardElement.querySelector('.scope-locked-notice');
+    const outputSelection = cardElement.querySelector('.output-selection');
+    const outputOptions = cardElement.querySelector('.output-options');
+    const lockedNotice = cardElement.querySelector('.output-locked-notice');
     const chunkingOptions = cardElement.querySelector('.chunking-options');
     const chaptersPicker = cardElement.querySelector('.chapters-picker');
 
@@ -491,32 +532,31 @@ function handleFormatChange(cardElement, format, bookId) {
     chunkingOptions.classList.toggle('hidden', format !== 'chunks');
 
     if (BOOK_ONLY_FORMATS.includes(format)) {
-        // Lock to "Entire Book" for EPUB and Chunks
-        scopeOptions.classList.add('hidden');
+        // Lock to "Combined" for EPUB and Chunks - hide output options, show notice
+        outputOptions.classList.add('hidden');
         lockedNotice.classList.remove('hidden');
-        chaptersPicker.classList.add('hidden');
 
-        // Reset to book scope
-        const bookRadio = cardElement.querySelector('input[name="scope"][value="book"]');
-        if (bookRadio) bookRadio.checked = true;
+        // Reset to combined output
+        const combinedRadio = cardElement.querySelector('input[name="output-style"][value="combined"]');
+        if (combinedRadio) combinedRadio.checked = true;
     } else {
-        // Show all scope options
-        scopeOptions.classList.remove('hidden');
+        // Show all output options
+        outputOptions.classList.remove('hidden');
         lockedNotice.classList.add('hidden');
+    }
 
-        // Check current scope and show chapter picker if needed
-        const currentScope = cardElement.querySelector('input[name="scope"]:checked')?.value;
-        if (currentScope === 'select') {
-            loadChaptersIfNeeded(cardElement, bookId);
-            chaptersPicker.classList.remove('hidden');
-        }
+    // Check current chapters scope and show chapter picker if needed
+    const currentChaptersScope = cardElement.querySelector('input[name="chapters-scope"]:checked')?.value;
+    if (currentChaptersScope === 'select') {
+        loadChaptersIfNeeded(cardElement, bookId);
+        chaptersPicker.classList.remove('hidden');
     }
 }
 
-function handleScopeChange(cardElement, scope, bookId) {
+function handleChaptersScopeChange(cardElement, chaptersScope, bookId) {
     const chaptersPicker = cardElement.querySelector('.chapters-picker');
 
-    if (scope === 'select') {
+    if (chaptersScope === 'select') {
         loadChaptersIfNeeded(cardElement, bookId);
         chaptersPicker.classList.remove('hidden');
     } else {
@@ -680,20 +720,24 @@ async function download(cardElement) {
         return;
     }
 
-    // Get selected scope
-    const scopeRadio = cardElement.querySelector('input[name="scope"]:checked');
-    const scope = scopeRadio ? scopeRadio.value : 'book';
+    // Get chapters scope (all or select)
+    const chaptersScopeRadio = cardElement.querySelector('input[name="chapters-scope"]:checked');
+    const chaptersScope = chaptersScopeRadio ? chaptersScopeRadio.value : 'all';
 
-    // Determine final format string based on format + scope
+    // Get output style (combined or separate)
+    const outputStyleRadio = cardElement.querySelector('input[name="output-style"]:checked');
+    const outputStyle = outputStyleRadio ? outputStyleRadio.value : 'combined';
+
+    // Determine final format string based on format + output style
     let finalFormat = format;
-    if (scope === 'chapters' && !BOOK_ONLY_FORMATS.includes(format)) {
-        // For chapter scope, append -chapters to format (e.g., pdf-chapters, markdown-chapters)
+    if (outputStyle === 'separate' && !BOOK_ONLY_FORMATS.includes(format)) {
+        // For separate output, append -chapters to format (e.g., pdf-chapters, markdown-chapters)
         finalFormat = `${format}-chapters`;
     }
 
-    // Get selected chapters if scope is 'select'
+    // Get selected chapters if chapters scope is 'select'
     let selectedChapters = null;
-    if (scope === 'select') {
+    if (chaptersScope === 'select') {
         const chapterCheckboxes = cardElement.querySelectorAll('.chapter-checkbox');
         const checkedBoxes = cardElement.querySelectorAll('.chapter-checkbox:checked');
 
@@ -708,8 +752,7 @@ async function download(cardElement) {
         if (checkedBoxes.length < chapterCheckboxes.length) {
             selectedChapters = Array.from(checkedBoxes).map(cb => parseInt(cb.dataset.index));
         }
-        // If all chapters are selected, treat as "chapters" scope (separate files)
-        finalFormat = `${format}-chapters`;
+        // Note: separate/combined is determined by outputStyle, not by chapter selection
     }
 
     const progressSection = cardElement.querySelector('.progress-section');

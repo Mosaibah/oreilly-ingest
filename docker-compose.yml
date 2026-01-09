@@ -4,5 +4,6 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./cookies.json:/app/cookies.json:ro
+      - ./data:/app/data
       - ./output:/app/output
+      - ./web/static:/app/web/static:ro

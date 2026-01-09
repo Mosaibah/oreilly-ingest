@@ -218,6 +218,7 @@ class DownloaderHandler(SimpleHTTPRequestHandler):
         """Start a book download."""
         book_id = data.get("book_id")
         output_format = data.get("format", "epub")
+        print(f"[DEBUG] Received format from request: '{output_format}' (raw data: {data.get('format')})")
         selected_chapters = data.get("chapters")
         output_dir_str = data.get("output_dir")
         chunking_opts = data.get("chunking", {})
@@ -258,6 +259,7 @@ class DownloaderHandler(SimpleHTTPRequestHandler):
         # Parse formats using plugin (single source of truth)
         from plugins.downloader import DownloaderPlugin
         formats = DownloaderPlugin.parse_formats(output_format)
+        print(f"[DEBUG] Parsed formats: {formats}")
 
         # Start download in background thread
         thread = threading.Thread(

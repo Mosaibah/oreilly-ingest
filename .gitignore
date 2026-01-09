@@ -27,6 +27,7 @@ Thumbs.db
 
 # Project specific
 output/
+data/
 cookies.json
 *.epub
 

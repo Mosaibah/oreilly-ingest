@@ -42,6 +42,7 @@ class DownloaderPlugin(Plugin):
     SUPPORTED_FORMATS = frozenset([
         "epub",
         "markdown",
+        "markdown-chapters",
         "pdf",
         "pdf-chapters",
         "plaintext",
@@ -105,6 +106,7 @@ class DownloaderPlugin(Plugin):
         return {
             "epub": "Standard EPUB format (default)",
             "markdown": "Markdown files (alias: md)",
+            "markdown-chapters": "Separate Markdown file per chapter",
             "pdf": "Single PDF file",
             "pdf-chapters": "Separate PDF per chapter",
             "plaintext": "Plain text (alias: txt)",
@@ -354,14 +356,14 @@ class DownloaderPlugin(Plugin):
             result.files["epub"] = str(epub_path)
 
         # Markdown
-        if "markdown" in formats or "md" in formats:
+        if "markdown" in formats or "md" in formats or "markdown-chapters" in formats:
             report("generating_markdown", 92)
             md_plugin = self.kernel["markdown"]
             md_plugin.generate_book(book_info, chapters_data, book_dir)
             result.files["markdown"] = str(book_dir / "Markdown")
 
         # PDF
-        if "pdf" in formats or "all" in formats:
+        if "pdf" in formats or "all" in formats or "pdf-chapters" in formats:
             pdf_plugin = self.kernel["pdf"]
 
             if "pdf-chapters" in formats:
@@ -386,7 +388,7 @@ class DownloaderPlugin(Plugin):
                 result.files["pdf"] = str(pdf_path)
 
         # Plain text
-        if "plaintext" in formats or "txt" in formats:
+        if "plaintext" in formats or "txt" in formats or "plaintext-chapters" in formats:
             report("generating_plaintext", 96)
             plaintext_plugin = self.kernel["plaintext"]
             single_file = "plaintext-chapters" not in formats

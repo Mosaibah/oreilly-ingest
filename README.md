@@ -1,94 +1,93 @@
 # O'Reilly Ingest
 
-Convert O'Reilly books to LLM-ready formats (Markdown, Text, JSON) for AI interaction and analysis. Also supports PDF and EPUB.
+We're in the AI era. You want to chat with your favorite technical books using Claude Code, Cursor, or any LLM tool. This gets you there.
+
+Export any O'Reilly book to Markdown, PDF, EPUB, JSON, or plain text. Download by chapters so you don't burn through your context window.
+
+> Requires a valid O'Reilly Learning subscription.
 
 ## Disclaimer
 
-This tool is for personal and educational purposes only. I am not responsible for how this program is used. Before using, please read the [O'Reilly Terms of Service](https://www.oreilly.com/terms/).
+For personal and educational use only. Please read the [O'Reilly Terms of Service](https://www.oreilly.com/terms/).
+
+## Credits
+
+Inspired by [safaribooks](https://github.com/lorenzodifuccia/safaribooks) by [@lorenzodifuccia](https://github.com/lorenzodifuccia).
+
 
 ## Features
 
-- Web interface for searching and downloading
-- PDF, EPUB, plain text, and JSON output
-- Downloads images and stylesheets
+- **Export by chapters** - save tokens, focus on what matters
+- **LLM-ready formats** - Markdown, JSON, plain text optimized for AI
+- **Traditional formats** - PDF and EPUB 3
+- **O'Reilly V2 API** - fast and reliable
+- **Images & styles included** - complete book experience
+- **Web UI** - search, preview, download
 
-## Requirements
+[Demo](docs/demo.mp4)
 
-- Python 3.10+
-- Active O'Reilly Learning subscription
+------
 
-## Installation
+<img src="docs/main.png" alt="Main Page">
+
+## Quick Start
+
+### Docker
 
 ```bash
-git clone https://github.com/yourusername/oreilly-ingest.git
-cd oreilly-ingest
-python3 -m venv .venv
-source .venv/bin/activate
+git clone https://github.com/mosaibah/oreilly-downloader.git
+cd oreilly-downloader
+docker compose up -d
+```
+
+### Python
+
+```bash
+git clone https://github.com/mosaibah/oreilly-downloader.git
+cd oreilly-downloader
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-## Setup Cookies
-
-1. Go to [learning.oreilly.com](https://learning.oreilly.com) and log in
-2. Open DevTools (F12)
-3. Go to Application > Cookies > https://learning.oreilly.com
-4. Create a `cookies.json` file in the project root with the following format:
-
-```json
-{
-  "BrowserCookie": "your_browser_cookie_value",
-  "OptanonConsent": "your_optanon_consent_value"
-}
-```
-
-Copy the values from the DevTools cookies panel.
-
-## Usage
-
-```bash
 python main.py
 ```
 
-Open http://localhost:8000 in your browser.
+Then open http://localhost:8000
 
-### Options
+## Setting Up Cookies
 
-```bash
-python main.py --host 0.0.0.0 --port 9000
+Click "Set Cookies" in the web interface and follow the steps:
+
+<img src="docs/cookie-modal.png" alt="Cookie Setup" style="max-width:320px; height:auto;">
+
+## Architecture
+
+Plugin-based microkernel design:
+
+| Layer | Components |
+|-------|------------|
+| **Kernel** | Plugin registry, shared HTTP client |
+| **Core** | Auth, Book, Chapters, Assets, HtmlProcessor |
+| **Output** | Epub, Markdown, Pdf, PlainText, JsonExport |
+| **Utility** | Chunking, Token, Downloader |
+
+### API
+
+```
+GET  /api/status       - auth check
+GET  /api/search?q=    - find books
+GET  /api/book/{id}    - metadata
+POST /api/download     - start export
+GET  /api/progress     - SSE stream
 ```
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| --host | localhost | Server host |
-| --port | 8000 | Server port |
+## Contributing
 
-## Docker
+Found a bug or have an idea? PRs and issues are always welcome!
 
-### Quick Start
-
-```bash
-docker compose up
-```
-
-Open http://localhost:8000
-
-### Build and Run Manually
-
-```bash
-docker build -t oreilly-ingest .
-docker run -p 8000:8000 -v ./cookies.json:/app/cookies.json:ro -v ./output:/app/output oreilly-ingest
-```
-
-## Configuration
-
-Edit `config.py` to customize:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| OUTPUT_DIR | ./output | Where books are saved |
-| REQUEST_DELAY | 0.5 | Delay between requests (seconds) |
-| REQUEST_TIMEOUT | 30 | Request timeout (seconds) |
 
 ## License
 
 MIT
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Mosaibah/oreilly-ingest&type=date&legend=top-left)](https://www.star-history.com/#Mosaibah/oreilly-ingest&type=date&legend=top-left)
