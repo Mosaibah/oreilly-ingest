@@ -12,9 +12,9 @@ from plugins.chunking import ChunkConfig
 
 @dataclass
 class DownloadProgress:
-    """Progress information for download operations."""
+    """Progress state for download operations."""
 
-    status: str  # "fetching_metadata", "processing_chapters", etc.
+    status: str
     percentage: int = 0
     message: str = ""
     eta_seconds: int | None = None
@@ -26,7 +26,7 @@ class DownloadProgress:
 
 @dataclass
 class DownloadResult:
-    """Result of a completed download operation."""
+    """Result of a completed download."""
 
     book_id: str
     title: str
@@ -36,18 +36,7 @@ class DownloadResult:
 
 
 class DownloaderPlugin(Plugin):
-    """
-    Orchestrates the complete book download workflow.
-
-    This plugin coordinates all other plugins to:
-    1. Fetch book metadata
-    2. Fetch and process chapters
-    3. Download assets (CSS, images)
-    4. Generate output formats (EPUB, Markdown, PDF, etc.)
-
-    This is the main entry point for downloading books from any interface
-    (web, CLI, scripts).
-    """
+    """Orchestrates the complete book download workflow."""
 
     # Format vocabulary - discoverable by any client
     SUPPORTED_FORMATS = frozenset([
@@ -73,22 +62,7 @@ class DownloaderPlugin(Plugin):
 
     @classmethod
     def parse_formats(cls, format_input: str | list[str]) -> list[str]:
-        """
-        Parse format specification into canonical format names.
-
-        Handles:
-        - Single format string: "epub"
-        - Comma-separated: "epub,markdown,pdf"
-        - List: ["epub", "markdown"]
-        - Aliases: "md" -> "markdown", "txt" -> "plaintext"
-        - Special "all" keyword
-
-        Args:
-            format_input: Single format, comma-separated string, or list
-
-        Returns:
-            List of canonical format names (defaults to ["epub"] if empty)
-        """
+        """Parse format specification into canonical format names."""
         # Handle list input
         if isinstance(format_input, list):
             raw_formats = format_input
@@ -127,12 +101,7 @@ class DownloaderPlugin(Plugin):
 
     @classmethod
     def get_format_help(cls) -> dict[str, str]:
-        """
-        Return format descriptions for CLI help text or UI display.
-
-        Returns:
-            Dict mapping format name to human-readable description
-        """
+        """Return format descriptions for CLI help or UI display."""
         return {
             "epub": "Standard EPUB format (default)",
             "markdown": "Markdown files (alias: md)",
@@ -147,26 +116,13 @@ class DownloaderPlugin(Plugin):
 
     @classmethod
     def supports_chapter_selection(cls, fmt: str) -> bool:
-        """
-        Check if a format supports chapter selection.
-
-        Args:
-            fmt: Format name (canonical or alias)
-
-        Returns:
-            True if format supports selecting specific chapters
-        """
+        """Check if a format supports chapter selection."""
         canonical = cls.FORMAT_ALIASES.get(fmt, fmt)
         return canonical not in cls.BOOK_ONLY_FORMATS
 
     @classmethod
     def get_formats_info(cls) -> dict:
-        """
-        Return complete format information for discovery endpoints.
-
-        Returns:
-            Dict with formats, aliases, book_only, and descriptions
-        """
+        """Return complete format information for discovery endpoints."""
         return {
             "formats": sorted(cls.SUPPORTED_FORMATS),
             "aliases": cls.FORMAT_ALIASES,
@@ -185,25 +141,7 @@ class DownloaderPlugin(Plugin):
         progress_callback: Callable[[DownloadProgress], None] | None = None,
         cancel_check: Callable[[], bool] | None = None,
     ) -> DownloadResult:
-        """
-        Orchestrate full download pipeline.
-
-        Args:
-            book_id: O'Reilly book identifier
-            output_dir: Base output directory
-            formats: List of output formats ["epub", "markdown", "pdf", etc.]
-            selected_chapters: Optional list of chapter indices to download
-            skip_images: Skip downloading images
-            chunk_config: Optional configuration for chunking
-            progress_callback: Called with progress updates
-            cancel_check: Called to check if cancellation requested
-
-        Returns:
-            DownloadResult with paths to generated files
-
-        Raises:
-            Exception: If download fails or is cancelled
-        """
+        """Orchestrate full download pipeline for a book."""
         if formats is None:
             formats = ["epub"]
 

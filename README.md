@@ -1,6 +1,6 @@
-# O'Reilly Downloader
+# O'Reilly Ingest
 
-Download books from O'Reilly Learning Platform and convert them to PDF, EPUB, plain text, or JSON.
+Convert O'Reilly books to LLM-ready formats (Markdown, Text, JSON) for AI interaction and analysis. Also supports PDF and EPUB.
 
 ## Disclaimer
 
@@ -20,8 +20,8 @@ This tool is for personal and educational purposes only. I am not responsible fo
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/oreilly-downloader.git
-cd oreilly-downloader
+git clone https://github.com/yourusername/oreilly-ingest.git
+cd oreilly-ingest
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -75,8 +75,8 @@ Open http://localhost:8000
 ### Build and Run Manually
 
 ```bash
-docker build -t oreilly-downloader .
-docker run -p 8000:8000 -v ./cookies.json:/app/cookies.json:ro -v ./output:/app/output oreilly-downloader
+docker build -t oreilly-ingest .
+docker run -p 8000:8000 -v ./cookies.json:/app/cookies.json:ro -v ./output:/app/output oreilly-ingest
 ```
 
 ## Configuration

@@ -1,31 +1,12 @@
-"""
-PDF generation plugin using WeasyPrint.
-
-Converts downloaded book content to a professional PDF with:
-- Cover page with book image and title
-- Clickable table of contents
-- PDF bookmarks for navigation
-- Page breaks between chapters
-- Page numbers in footer
-"""
+"""PDF generation plugin using WeasyPrint."""
 
 import html
 import re
 from pathlib import Path
 
+from utils.files import sanitize_filename
+
 from .base import Plugin
-
-
-def sanitize_filename(name: str) -> str:
-    """Sanitize a string for use as a filename."""
-    name = name.replace("/", "-").replace("\\", "-")
-    name = name.replace(":", " -").replace("?", "").replace("*", "")
-    name = name.replace('"', "'").replace("<", "").replace(">", "")
-    name = name.replace("|", "-")
-    name = name.strip().strip(".")
-    if len(name) > 200:
-        name = name[:200].strip()
-    return name
 
 
 class PdfPlugin(Plugin):

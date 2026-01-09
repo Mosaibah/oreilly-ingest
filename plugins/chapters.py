@@ -7,15 +7,7 @@ class ChaptersPlugin(Plugin):
     """Plugin for fetching book chapters and their content."""
 
     def fetch_list(self, book_id: str) -> list[ChapterInfo]:
-        """
-        Fetch list of chapters for a book.
-
-        Args:
-            book_id: O'Reilly book identifier
-
-        Returns:
-            List of ChapterInfo dicts with chapter metadata
-        """
+        """Fetch list of chapters for a book."""
         url = f"{config.API_V2}/epub-chapters/?epub_identifier=urn:orm:book:{book_id}"
         chapters: list[ChapterInfo] = []
 

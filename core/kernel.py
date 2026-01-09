@@ -18,15 +18,7 @@ class Kernel:
 
 
 def create_default_kernel() -> Kernel:
-    """
-    Create a kernel with all standard plugins registered.
-
-    This is the recommended way to create a kernel for any interface
-    (web server, CLI, scripts, tests).
-
-    Returns:
-        Configured Kernel instance with all plugins registered
-    """
+    """Create a kernel with all standard plugins registered."""
     from plugins import (
         AuthPlugin,
         BookPlugin,

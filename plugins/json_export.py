@@ -1,33 +1,16 @@
-"""
-JSON export plugin for RAG/LLM pipeline integration.
-Produces structured output with metadata, chapters, and statistics.
-"""
+"""JSON export plugin for RAG/LLM pipeline integration."""
 
 import json
 from pathlib import Path
 
 from core.text_extractor import TextExtractor
+from utils.files import sanitize_filename
 
 from .base import Plugin
 
 
 class JsonExportPlugin(Plugin):
-    """
-    Generate structured JSON output for AI/LLM workflows.
-
-    Output formats:
-    - .json: Complete book as single JSON object
-    - .jsonl: One chapter per line (streaming-friendly)
-
-    Usage:
-        plugin = kernel["json_export"]
-        path = plugin.generate(
-            book_dir=Path("output/MyBook"),
-            book_metadata={"title": "...", ...},
-            chapters_data=[...],
-            include_jsonl=True
-        )
-    """
+    """Generate structured JSON output for AI/LLM workflows."""
 
     def __init__(self):
         self._extractor = TextExtractor()
@@ -39,22 +22,11 @@ class JsonExportPlugin(Plugin):
         chapters_data: list[tuple[str, str, str]],
         include_jsonl: bool = False,
     ) -> Path:
-        """
-        Generate JSON export.
-
-        Args:
-            book_dir: Output directory for the book
-            book_metadata: Dict with title, authors, isbn, publisher, topics
-            chapters_data: List of (filename, title, html_content) tuples
-            include_jsonl: Also generate .jsonl file
-
-        Returns:
-            Path to generated .json file
-        """
+        """Generate JSON export (.json and optional .jsonl)."""
         export_data = self._build_export_structure(book_metadata, chapters_data)
 
         title = book_metadata.get("title", "Unknown")
-        safe_title = self._sanitize_filename(title)
+        safe_title = sanitize_filename(title)
 
         json_path = book_dir / f"{safe_title}.json"
         with open(json_path, "w", encoding="utf-8") as f:
@@ -126,11 +98,7 @@ class JsonExportPlugin(Plugin):
         return len(text.split())
 
     def _get_token_count(self, text: str) -> int | None:
-        """
-        Get token count via TokenPlugin if available.
-
-        Returns None if TokenPlugin not registered.
-        """
+        """Get token count via TokenPlugin if available."""
         try:
             token_plugin = self.kernel.get("token")
             if token_plugin:
@@ -158,10 +126,3 @@ class JsonExportPlugin(Plugin):
             for chapter in chapters:
                 f.write(json.dumps(chapter, ensure_ascii=False) + "\n")
         return jsonl_path
-
-    def _sanitize_filename(self, name: str) -> str:
-        """Remove invalid characters from filename."""
-        invalid_chars = '<>:"/\\|?*'
-        for char in invalid_chars:
-            name = name.replace(char, "")
-        return name.strip()[:200]

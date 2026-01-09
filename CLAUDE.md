@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-O'Reilly Learning Platform book downloader using a microkernel architecture. Downloads books and converts them to PDF, EPUB, Markdown, plain text, or JSON format. Python 3.10+, vanilla Python with minimal dependencies.
+O'Reilly book ingest tool using a microkernel architecture. Converts books to LLM-ready formats (Markdown, Text, JSON) for AI interaction. Also supports PDF and EPUB. Python 3.10+, vanilla Python with minimal dependencies.
 
 ## Commands
 

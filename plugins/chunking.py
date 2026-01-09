@@ -1,7 +1,4 @@
-"""
-Text chunking plugin for RAG applications.
-Splits content into fixed-size chunks with configurable overlap.
-"""
+"""Text chunking plugin for RAG applications."""
 
 import json
 import re
@@ -9,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.text_extractor import TextExtractor
+from utils.files import sanitize_filename
 
 from .base import Plugin
 
@@ -23,24 +21,7 @@ class ChunkConfig:
 
 
 class ChunkingPlugin(Plugin):
-    """
-    Generate chunked output for RAG/retrieval applications.
-
-    Features:
-    - Fixed-size chunking by token count
-    - Configurable overlap between chunks
-    - Boundary-aware splitting (paragraphs, sentences)
-    - Per-chunk metadata including source chapter
-
-    Usage:
-        plugin = kernel["chunking"]
-        path = plugin.generate(
-            book_dir=Path("output/MyBook"),
-            book_metadata={"title": "..."},
-            chapters_data=[...],
-            config=ChunkConfig(chunk_size=4000, overlap=200)
-        )
-    """
+    """Generate chunked JSONL output for RAG/retrieval applications."""
 
     SENTENCE_ENDINGS = re.compile(r"[.!?]\s+")
     PARAGRAPH_BREAK = re.compile(r"\n\n+")
@@ -55,25 +36,14 @@ class ChunkingPlugin(Plugin):
         chapters_data: list[tuple[str, str, str]],
         config: ChunkConfig | None = None,
     ) -> Path:
-        """
-        Generate chunked JSONL export.
-
-        Args:
-            book_dir: Output directory for the book
-            book_metadata: Dict with title, authors, etc.
-            chapters_data: List of (filename, title, html_content) tuples
-            config: Chunking configuration (uses defaults if None)
-
-        Returns:
-            Path to generated {title}_chunks.jsonl file
-        """
+        """Generate chunked JSONL export."""
         if config is None:
             config = ChunkConfig()
 
         chunks = self.chunk_book(chapters_data, config)
 
         title = book_metadata.get("title", "Unknown")
-        safe_title = self._sanitize_filename(title)
+        safe_title = sanitize_filename(title)
 
         output_path = book_dir / f"{safe_title}_chunks.jsonl"
         with open(output_path, "w", encoding="utf-8") as f:
@@ -87,16 +57,7 @@ class ChunkingPlugin(Plugin):
         chapters_data: list[tuple[str, str, str]],
         config: ChunkConfig,
     ) -> list[dict]:
-        """
-        Chunk an entire book, preserving chapter metadata.
-
-        Args:
-            chapters_data: List of (filename, title, html_content) tuples
-            config: Chunking configuration
-
-        Returns:
-            List of chunk dicts with chapter attribution
-        """
+        """Chunk an entire book, preserving chapter metadata."""
         all_chunks = []
         chunk_id = 0
 
@@ -127,18 +88,7 @@ class ChunkingPlugin(Plugin):
         overlap: int = 200,
         respect_boundaries: bool = True,
     ) -> list[dict]:
-        """
-        Chunk a single text into fixed-size pieces.
-
-        Args:
-            text: Text to chunk
-            chunk_size: Target tokens per chunk
-            overlap: Tokens to overlap
-            respect_boundaries: Try to break at paragraph/sentence
-
-        Returns:
-            List of chunk dicts with content, token_count, offsets
-        """
+        """Chunk text into fixed-size pieces with optional overlap."""
         if not text:
             return []
 
@@ -177,12 +127,7 @@ class ChunkingPlugin(Plugin):
         return chunks
 
     def _estimate_char_position(self, text: str, start: int, token_count: int) -> int:
-        """
-        Estimate character position for a target token count.
-
-        Uses ~4 chars per token heuristic for initial estimate,
-        then adjusts using actual token counts.
-        """
+        """Estimate character position for a target token count."""
         estimated_chars = token_count * 4
         target = start + estimated_chars
 
@@ -202,15 +147,7 @@ class ChunkingPlugin(Plugin):
         return min(target, len(text))
 
     def _find_break_point(self, text: str, target_pos: int, search_window: int = 500) -> int:
-        """
-        Find a good break point near target position.
-
-        Priority:
-        1. Paragraph break (double newline)
-        2. Sentence ending
-        3. Word boundary
-        4. Exact position (fallback)
-        """
+        """Find a paragraph, sentence, or word break near target position."""
         window_start = max(0, target_pos - search_window)
         window_end = min(len(text), target_pos + search_window // 2)
         window = text[window_start:window_end]
@@ -244,10 +181,3 @@ class ChunkingPlugin(Plugin):
         except Exception:
             pass
         return int(len(text.split()) * 1.3)
-
-    def _sanitize_filename(self, name: str) -> str:
-        """Remove invalid characters from filename."""
-        invalid_chars = '<>:"/\\|?*'
-        for char in invalid_chars:
-            name = name.replace(char, "")
-        return name.strip()[:200]

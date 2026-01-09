@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>O'Reilly Downloader</title>
+    <title>O'Reilly Ingest</title>
 
-    <!-- Fonts: Match O'Reilly's clean sans-serif -->
+    <!-- Fonts: Editorial pairing -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,14 +19,52 @@
                     colors: {
                         'oreilly': {
                             red: '#d4002d',
+                            'red-dark': '#a80024',
                             blue: '#0073e6',
                             'blue-dark': '#005bb5',
-                            'blue-light': '#e6f3ff',
-                            gray: '#5a6872',
+                            'blue-light': '#e8f4fc',
+                        },
+                        'surface': {
+                            50: '#fafafa',
+                            100: '#f4f4f5',
+                            200: '#e4e4e7',
+                            300: '#d4d4d8',
                         }
                     },
                     fontFamily: {
-                        'sans': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        'sans': ['DM Sans', 'system-ui', '-apple-system', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                        'slide-down': 'slideDown 0.25s ease-out',
+                        'shake': 'shake 0.4s ease',
+                        'pulse-subtle': 'pulseSubtle 2s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideDown: {
+                            '0%': { opacity: '0', transform: 'translateY(-8px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        shake: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '25%': { transform: 'translateX(-4px)' },
+                            '75%': { transform: 'translateX(4px)' },
+                        },
+                        pulseSubtle: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.7' },
+                        },
+                    },
+                    boxShadow: {
+                        'card': '0 1px 3px rgba(0,0,0,0.08)',
+                        'card-hover': '0 4px 12px rgba(0,0,0,0.1)',
+                        'card-expanded': '0 8px 30px rgba(0,0,0,0.12)',
+                        'inner-soft': 'inset 0 1px 2px rgba(0,0,0,0.06)',
                     }
                 }
             }
@@ -35,20 +73,20 @@
 
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-white font-sans text-gray-900 antialiased">
-    <!-- Header - White with red logo like O'Reilly -->
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-2xl font-bold tracking-tight text-oreilly-red">O'REILLY</span>
-                <span class="text-lg font-medium text-gray-400 hidden sm:inline">Downloader</span>
+<body class="min-h-screen flex flex-col bg-white font-sans text-zinc-900 antialiased">
+    <!-- Header -->
+    <header class="bg-white/95 backdrop-blur-sm border-b border-zinc-100 sticky top-0 z-40">
+        <div class="max-w-4xl mx-auto px-5 py-4 flex items-center justify-between">
+            <div class="flex items-baseline gap-2">
+                <span class="text-[1.625rem] font-bold tracking-tight text-oreilly-red">O'REILLY</span>
+                <span class="text-base font-medium text-zinc-300 hidden sm:inline">Ingest</span>
             </div>
-            <div class="flex items-center gap-3">
-                <div id="auth-status" class="auth-status">
-                    <span class="status-dot"></span>
+            <div class="flex items-center gap-4">
+                <div id="auth-status" class="flex items-center gap-2 text-sm text-zinc-500">
+                    <span class="status-dot w-2 h-2 rounded-full bg-zinc-300"></span>
                     <span class="status-text">Checking...</span>
                 </div>
-                <button id="login-btn" class="hidden px-4 py-2 text-sm font-medium text-oreilly-red border border-oreilly-red rounded-md hover:bg-red-50 transition-colors">
+                <button id="login-btn" class="hidden px-4 py-2 text-sm font-medium text-oreilly-red border border-oreilly-red/30 rounded-lg hover:bg-oreilly-red/5 transition-colors duration-150">
                     Set Cookies
                 </button>
             </div>
@@ -56,11 +94,11 @@
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <main class="flex-1 max-w-4xl w-full mx-auto px-5 py-10">
         <!-- Search Section -->
-        <section class="mb-8">
-            <div class="relative">
-                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+        <section class="mb-10">
+            <div class="relative group">
+                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-oreilly-blue">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
@@ -69,7 +107,7 @@
                     type="text"
                     id="search-input"
                     placeholder="Search by title, author, or ISBN..."
-                    class="w-full pl-12 pr-12 py-4 text-base bg-gray-50 border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-oreilly-blue focus:ring-2 focus:ring-oreilly-blue/20 transition-all"
+                    class="w-full pl-12 pr-12 py-4 text-base bg-surface-50 border border-zinc-200 rounded-xl placeholder:text-zinc-400 focus:outline-none focus:bg-white focus:border-oreilly-blue focus:ring-4 focus:ring-oreilly-blue/10 transition-all duration-200"
                     autocomplete="off"
                 >
                 <div id="search-loader" class="hidden absolute right-4 top-1/2 -translate-y-1/2">
@@ -91,36 +129,36 @@
     <div id="cookie-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
         <div class="min-h-screen px-4 flex items-center justify-center">
             <!-- Backdrop -->
-            <div class="fixed inset-0 bg-black/50 transition-opacity"></div>
+            <div class="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm transition-opacity"></div>
 
             <!-- Modal -->
-            <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 sm:p-8 transform transition-all">
-                <h3 class="text-xl font-semibold text-gray-900 mb-4">Set Session Cookies</h3>
+            <div class="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full p-7 transform transition-all animate-slide-down">
+                <h3 class="text-xl font-semibold text-zinc-900 mb-5">Set Session Cookies</h3>
 
-                <div class="space-y-4 text-gray-600 mb-6">
-                    <p class="font-medium text-gray-800">Follow these steps:</p>
-                    <ol class="list-decimal list-inside space-y-2 text-sm">
+                <div class="space-y-4 text-zinc-600 mb-6">
+                    <p class="font-medium text-zinc-800">Follow these steps:</p>
+                    <ol class="list-decimal list-inside space-y-2 text-sm leading-relaxed">
                         <li>Open <a href="https://learning.oreilly.com" target="_blank" class="text-oreilly-blue hover:underline font-medium">learning.oreilly.com</a> and log in</li>
-                        <li>Open browser console <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-xs font-mono">F12</kbd> → Console</li>
+                        <li>Open browser console <kbd class="px-1.5 py-0.5 bg-zinc-100 rounded text-xs font-mono">F12</kbd> → Console</li>
                         <li>Paste this command and press Enter:</li>
                     </ol>
-                    <pre class="bg-gray-900 text-gray-100 text-xs p-3 rounded-lg overflow-x-auto font-mono"><code>JSON.stringify(document.cookie.split(';').map(c=>c.split('=')).reduce((r,[k,v])=>({...r,[k.trim()]:v?.trim()}),{}))</code></pre>
+                    <pre class="bg-zinc-900 text-zinc-100 text-xs p-4 rounded-xl overflow-x-auto font-mono leading-relaxed"><code>JSON.stringify(document.cookie.split(';').map(c=>c.split('=')).reduce((r,[k,v])=>({...r,[k.trim()]:v?.trim()}),{}))</code></pre>
                     <p class="text-sm">Copy the output and paste below:</p>
                 </div>
 
                 <textarea
                     id="cookie-input"
                     placeholder='{"cookie_name": "value", ...}'
-                    class="w-full h-28 px-3 py-2.5 border border-gray-200 rounded-lg font-mono text-sm resize-none focus:outline-none focus:border-oreilly-blue focus:ring-2 focus:ring-oreilly-blue/20 transition-all"
+                    class="w-full h-28 px-4 py-3 border border-zinc-200 rounded-xl font-mono text-sm resize-none focus:outline-none focus:border-oreilly-blue focus:ring-4 focus:ring-oreilly-blue/10 transition-all duration-200"
                 ></textarea>
 
-                <p id="cookie-error" class="hidden mt-2 text-sm text-red-600 font-medium"></p>
+                <p id="cookie-error" class="hidden mt-3 text-sm text-red-600 font-medium"></p>
 
                 <div class="flex justify-end gap-3 mt-6">
-                    <button id="cancel-modal-btn" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">
+                    <button id="cancel-modal-btn" class="px-5 py-2.5 text-zinc-600 hover:bg-zinc-100 rounded-lg font-medium transition-colors duration-150">
                         Cancel
                     </button>
-                    <button id="save-cookies-btn" class="px-4 py-2 bg-oreilly-blue hover:bg-oreilly-blue-dark text-white rounded-lg font-medium transition-colors">
+                    <button id="save-cookies-btn" class="px-5 py-2.5 bg-oreilly-blue hover:bg-oreilly-blue-dark text-white rounded-lg font-medium transition-colors duration-150">
                         Save Cookies
                     </button>
                 </div>
@@ -129,7 +167,7 @@
     </div>
 
     <!-- Footer -->
-    <footer class="py-6 text-center text-sm text-gray-400 border-t border-gray-100">
+    <footer class="py-8 text-center text-sm text-zinc-400 border-t border-zinc-100">
         <p>For personal use only. Respect copyright and licensing terms.</p>
     </footer>
 

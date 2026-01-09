@@ -9,29 +9,14 @@ from plugins.base import Plugin
 
 
 class SystemPlugin(Plugin):
-    """
-    Platform-specific system operations.
-
-    Responsibilities:
-    - Show native folder picker dialogs
-    - Reveal files in file manager
-    - Platform detection
-    """
+    """Platform-specific system operations (dialogs, file manager)."""
 
     def get_platform(self) -> str:
         """Return the current platform identifier."""
         return platform.system()
 
     def show_folder_picker(self, initial_dir: Path | str | None = None) -> Path | None:
-        """
-        Show native folder picker dialog.
-
-        Args:
-            initial_dir: Initial directory to show in dialog
-
-        Returns:
-            Selected path or None if cancelled/failed
-        """
+        """Show native folder picker dialog."""
         system = self.get_platform()
         initial = str(initial_dir) if initial_dir else None
 
@@ -121,15 +106,7 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         return None
 
     def reveal_in_file_manager(self, path: Path | str) -> bool:
-        """
-        Open file manager and select the specified file.
-
-        Args:
-            path: Path to reveal
-
-        Returns:
-            True if successful, False otherwise
-        """
+        """Open file manager and select the specified file."""
         path = Path(path).resolve()
 
         if not path.exists():

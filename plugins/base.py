@@ -1,3 +1,5 @@
+"""Base plugin class for the microkernel architecture."""
+
 from abc import ABC
 
 

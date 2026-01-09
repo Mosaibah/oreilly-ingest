@@ -1,4 +1,4 @@
-"""Web server for O'Reilly Downloader."""
+"""Web server for O'Reilly Ingest."""
 
 import json
 import re

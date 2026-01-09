@@ -8,29 +8,14 @@ from utils import slugify
 
 
 class OutputPlugin(Plugin):
-    """
-    Manages output directories and file organization.
-
-    Responsibilities:
-    - Get/validate output directories
-    - Create book directories with conflict resolution
-    - Handle naming conventions
-    """
+    """Manages output directories and file organization."""
 
     def get_default_dir(self) -> Path:
         """Return the default output directory from config."""
         return config.OUTPUT_DIR
 
     def validate_dir(self, path: str | Path | None) -> tuple[bool, str, Path | None]:
-        """
-        Validate that a directory exists and is writable.
-
-        Args:
-            path: Directory path to validate (None uses default)
-
-        Returns:
-            Tuple of (success, message, resolved_path)
-        """
+        """Validate that a directory exists and is writable."""
         if path is None:
             return True, "Using default directory", self.get_default_dir()
 
@@ -63,18 +48,7 @@ class OutputPlugin(Plugin):
         title: str,
         authors: list[str] | None = None,
     ) -> Path:
-        """
-        Create a book output directory.
-
-        Args:
-            output_dir: Parent output directory
-            book_id: Book identifier (for conflict detection)
-            title: Book title (used for folder name)
-            authors: Optional author list (fallback if no title)
-
-        Returns:
-            Path to the created book directory
-        """
+        """Create a book output directory with conflict resolution."""
         # Build folder name with fallback chain
         folder_title = (title or "").strip()
         if not folder_title and authors:
@@ -99,16 +73,7 @@ class OutputPlugin(Plugin):
         return book_dir
 
     def _resolve_conflict(self, book_dir: Path, book_id: str) -> Path:
-        """
-        Handle directory conflicts for books with same title but different IDs.
-
-        Args:
-            book_dir: Proposed book directory path
-            book_id: Current book's ID
-
-        Returns:
-            Resolved directory path (may be different if conflict detected)
-        """
+        """Handle directory conflicts for books with same title but different IDs."""
         meta_file = book_dir / ".book_id"
 
         if book_dir.exists() and meta_file.exists():

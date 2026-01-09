@@ -186,26 +186,10 @@ class _HTMLTextExtractor(HTMLParser):
 
 
 class TextExtractor:
-    """
-    Extracts plain text and code blocks from HTML content.
-
-    Handles:
-    - Stripping all HTML tags while preserving text
-    - Extracting code blocks with language detection
-    - Normalizing whitespace and line breaks
-    - Preserving list structure as bullet points
-    """
+    """Extracts plain text and code blocks from HTML content."""
 
     def extract(self, html: str) -> ExtractedContent:
-        """
-        Extract plain text and code blocks from HTML.
-
-        Args:
-            html: Raw HTML content
-
-        Returns:
-            ExtractedContent with cleaned text and code blocks
-        """
+        """Extract plain text and code blocks from HTML."""
         parser = _HTMLTextExtractor()
         parser.feed(html)
 
@@ -213,15 +197,7 @@ class TextExtractor:
         return ExtractedContent(text=text, code_blocks=parser.code_blocks)
 
     def extract_text_only(self, html: str) -> str:
-        """
-        Extract only plain text, formatting code blocks with markdown fences.
-
-        Args:
-            html: Raw HTML content
-
-        Returns:
-            Plain text with code blocks as ```lang ... ```
-        """
+        """Extract plain text with code blocks as markdown fences."""
         return self.extract(html).text
 
     def _normalize_whitespace(self, text: str) -> str:

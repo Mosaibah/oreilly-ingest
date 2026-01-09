@@ -1,5 +1,5 @@
 services:
-  oreilly-downloader:
+  oreilly-ingest:
     build: .
     ports:
       - "8000:8000"
