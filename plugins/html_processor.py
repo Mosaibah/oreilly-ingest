@@ -51,7 +51,7 @@ class HtmlProcessorPlugin(Plugin):
                 continue
 
             filename = src.split("/")[-1]
-            img["src"] = f"Images/{filename}"
+            img["src"] = f"../Images/{filename}"
             images.append(src)
 
         return images
