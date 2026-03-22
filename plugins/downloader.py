@@ -39,18 +39,20 @@ class DownloaderPlugin(Plugin):
     """Orchestrates the complete book download workflow."""
 
     # Format vocabulary - discoverable by any client
-    SUPPORTED_FORMATS = frozenset([
-        "epub",
-        "markdown",
-        "markdown-chapters",
-        "pdf",
-        "pdf-chapters",
-        "plaintext",
-        "plaintext-chapters",
-        "json",
-        "jsonl",
-        "chunks",
-    ])
+    SUPPORTED_FORMATS = frozenset(
+        [
+            "epub",
+            "markdown",
+            "markdown-chapters",
+            "pdf",
+            "pdf-chapters",
+            "plaintext",
+            "plaintext-chapters",
+            "json",
+            "jsonl",
+            "chunks",
+        ]
+    )
 
     # Aliases for user convenience (e.g., CLI shorthand)
     FORMAT_ALIASES = {
@@ -73,7 +75,9 @@ class DownloaderPlugin(Plugin):
                 return ["epub", "markdown", "pdf", "plaintext", "json", "chunks"]
 
             # Split comma-separated and clean
-            raw_formats = [f.strip().lower() for f in format_input.split(",") if f.strip()]
+            raw_formats = [
+                f.strip().lower() for f in format_input.split(",") if f.strip()
+            ]
 
         formats = []
         seen = set()
@@ -189,10 +193,18 @@ class DownloaderPlugin(Plugin):
         report("fetching_metadata", 5)
         book_info = book_plugin.fetch(book_id)
 
-        # Phase 2: Fetch chapters list
+        # Phase 2: Fetch chapters list and full file manifest
         report("fetching_chapters", 10)
         all_chapters = chapters_plugin.fetch_list(book_id)
         toc = chapters_plugin.fetch_toc(book_id)
+
+        # Build a filename → file-entry map from the files endpoint so we can
+        # fetch complete, untruncated XHTML (the epub-chapters/ API only returns
+        # truncated previews).  Falls back to content_url when a chapter is not
+        # found in the manifest (e.g. non-chapter assets).
+        file_map: dict[str, dict] = {}
+        if book_info.get("files_url"):
+            file_map = chapters_plugin.fetch_file_list(book_info["files_url"])
 
         # Filter chapters if selection provided
         if selected_chapters is not None:
@@ -235,7 +247,9 @@ class DownloaderPlugin(Plugin):
                 raise Exception("Download cancelled by user")
 
             # Calculate percentage (chapters are 15%-80% of work)
-            chapter_pct = 15 + int((i / total_chapters) * 65) if total_chapters > 0 else 15
+            chapter_pct = (
+                15 + int((i / total_chapters) * 65) if total_chapters > 0 else 15
+            )
 
             report(
                 "processing_chapters",
@@ -245,8 +259,12 @@ class DownloaderPlugin(Plugin):
                 chapter_title=ch.get("title", ""),
             )
 
-            # Fetch and process chapter content
-            raw_html = chapters_plugin.fetch_content(ch["content_url"])
+            # Fetch and process chapter content.
+            # Prefer the files-manifest URL (full XHTML) over content_url
+            # (which comes from the epub-chapters/ preview API and is truncated).
+            file_entry = file_map.get(ch["filename"])
+            content_url = file_entry["url"] if file_entry else ch["content_url"]
+            raw_html = chapters_plugin.fetch_content(content_url)
             processed, images = html_processor.process(
                 raw_html, book_id, skip_images=skip_images
             )
@@ -388,7 +406,11 @@ class DownloaderPlugin(Plugin):
                 result.files["pdf"] = str(pdf_path)
 
         # Plain text
-        if "plaintext" in formats or "txt" in formats or "plaintext-chapters" in formats:
+        if (
+            "plaintext" in formats
+            or "txt" in formats
+            or "plaintext-chapters" in formats
+        ):
             report("generating_plaintext", 96)
             plaintext_plugin = self.kernel["plaintext"]
             single_file = "plaintext-chapters" not in formats
