@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "oreilly_downloader",
+  "project_id": "38a2787f-f357-4eb9-b278-6ff4aa65a184"
+}

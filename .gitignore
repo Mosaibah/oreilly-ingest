@@ -38,3 +38,7 @@ cookies.json
 .coverage
 .pytest_cache/
 htmlcov/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
