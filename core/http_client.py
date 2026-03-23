@@ -1,6 +1,7 @@
 import json
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
 
@@ -23,7 +24,8 @@ class HttpClient:
                 cookies = json.load(f)
             if isinstance(cookies, dict):
                 for name, value in cookies.items():
-                    self.session.cookies.set(name, value, domain=".oreilly.com")
+                    cookie_domain = urlparse(config.BASE_URL).hostname
+                    self.session.cookies.set(name, value, domain=cookie_domain)
         except (json.JSONDecodeError, ValueError):
             pass  # Empty or invalid file, skip loading
 

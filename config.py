@@ -10,7 +10,8 @@ if DATA_DIR.exists():
 else:
     COOKIES_FILE = BASE_DIR / "cookies.json"
 
-BASE_URL = "https://learning.oreilly.com"
+# BASE_URL = "https://learning.oreilly.com"
+BASE_URL = "https://learning-oreilly-com.res.banq.qc.ca"
 API_V1 = f"{BASE_URL}/api/v1"
 API_V2 = f"{BASE_URL}/api/v2"
 

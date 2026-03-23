@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Callable
 
+import config
 from .base import Plugin
 
 
@@ -57,4 +58,4 @@ class AssetsPlugin(Plugin):
         return downloaded
 
     def get_cover_url(self, book_id: str) -> str:
-        return f"https://learning.oreilly.com/library/cover/{book_id}/"
+        return f"{config.BASE_URL}/library/cover/{book_id}/"

@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+import config
 from plugins.base import Plugin
 from plugins.chunking import ChunkConfig
 
@@ -314,7 +315,7 @@ class DownloaderPlugin(Plugin):
         image_list = []
         for img_url in all_image_urls:
             if img_url.startswith("/"):
-                img_url = f"https://learning.oreilly.com{img_url}"
+                img_url = f"{config.BASE_URL}{img_url}"
             image_list.append(img_url)
 
         css_list = list(all_css_urls)
