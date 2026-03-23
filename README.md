@@ -52,6 +52,16 @@ Then open http://localhost:8000
 
 Click "Set Cookies" in the web interface and follow the steps:
 
+1. Open [learning.oreilly.com](https://learning.oreilly.com) and log in.
+2. Open the browser console (`F12` → Console).
+3. Paste the following command and press Enter:
+
+```js
+Object.fromEntries(document.cookie.split(';').map(c => c.split('=').map(s => s.trim())))
+```
+
+4. Copy the output and paste it into the cookie field.
+
 <img src="docs/cookie-modal.png" alt="Cookie Setup" style="max-width:320px; height:auto;">
 
 ## Architecture
