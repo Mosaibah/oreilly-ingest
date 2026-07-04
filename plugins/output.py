@@ -1,6 +1,7 @@
 """Output directory management plugin."""
 
 from pathlib import Path
+from threading import Lock
 
 import config
 from plugins.base import Plugin
@@ -9,6 +10,8 @@ from utils import slugify
 
 class OutputPlugin(Plugin):
     """Manages output directories and file organization."""
+
+    _create_dir_lock = Lock()
 
     def get_default_dir(self) -> Path:
         """Return the default output directory from config."""
@@ -49,28 +52,28 @@ class OutputPlugin(Plugin):
         authors: list[str] | None = None,
     ) -> Path:
         """Create a book output directory with conflict resolution."""
-        # Build folder name with fallback chain
-        folder_title = (title or "").strip()
-        if not folder_title and authors:
-            folder_title = f"Book by {authors[0]}"
-        if not folder_title:
-            folder_title = book_id
+        with self._create_dir_lock:
+            folder_title = (title or "").strip()
+            if not folder_title and authors:
+                folder_title = f"Book by {authors[0]}"
+            if not folder_title:
+                folder_title = book_id
 
-        folder_name = slugify(folder_title)
-        book_dir = output_dir / folder_name
+            folder_name = slugify(folder_title)
+            book_dir = output_dir / folder_name
 
-        # Handle same-title-different-book conflicts
-        book_dir = self._resolve_conflict(book_dir, book_id)
+            # Handle same-title-different-book conflicts.
+            book_dir = self._resolve_conflict(book_dir, book_id)
 
-        # Create the directory structure
-        oebps = book_dir / "OEBPS"
-        oebps.mkdir(parents=True, exist_ok=True)
+            # Create the directory structure.
+            oebps = book_dir / "OEBPS"
+            oebps.mkdir(parents=True, exist_ok=True)
 
-        # Write book_id for future reference
-        meta_file = book_dir / ".book_id"
-        meta_file.write_text(book_id)
+            # Write book_id for future reference.
+            meta_file = book_dir / ".book_id"
+            meta_file.write_text(book_id)
 
-        return book_dir
+            return book_dir
 
     def _resolve_conflict(self, book_dir: Path, book_id: str) -> Path:
         """Handle directory conflicts for books with same title but different IDs."""
