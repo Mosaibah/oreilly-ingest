@@ -14,7 +14,6 @@ For personal and educational use only. Please read the [O'Reilly Terms of Servic
 
 Inspired by [safaribooks](https://github.com/lorenzodifuccia/safaribooks) by [@lorenzodifuccia](https://github.com/lorenzodifuccia).
 
-
 ## Features
 
 - **Export by chapters** - save tokens, focus on what matters
@@ -36,7 +35,23 @@ cd oreilly-downloader
 docker compose up -d
 ```
 
-### Python
+### pip (CLI)
+
+```bash
+pip install git+https://github.com/mosaibah/oreilly-ingest.git
+oreilly-ingest
+```
+
+Or from a local checkout:
+
+```bash
+git clone https://github.com/mosaibah/oreilly-downloader.git
+cd oreilly-downloader
+pip install .
+oreilly-ingest
+```
+
+### Python (venv)
 
 ```bash
 git clone https://github.com/mosaibah/oreilly-downloader.git
@@ -50,20 +65,114 @@ Then open http://localhost:8000
 
 ## Setting Up Cookies
 
-Click "Set Cookies" in the web interface and follow the steps:
+Place your exported O'Reilly session cookies in `core/state/` using either filename:
 
-<img src="docs/cookie-modal.png" alt="Cookie Setup" style="max-width:320px; height:auto;">
+- `core/state/cookies.json` — JSON format
+- `core/state/cookies.txt` — Netscape HTTP Cookie File format
+
+To export cookies from your browser:
+
+1. Open the O'Reilly Learning Platform.
+2. Open Developer Tools (`F12`).
+3. Go to **Application** → **Cookies** → `learning.oreilly.com`.
+4. Export the cookies as JSON or Netscape format.
+
+Alternatively, on the web interface, click "Set Cookies" and follow the steps.
+
+## CLI Usage
+
+### Web Server
+
+```bash
+oreilly-ingest                 # defaults to localhost:8000
+oreilly-ingest --port 9000     # custom port
+```
+
+Or with the venv approach:
+
+```bash
+python main.py                 # defaults to localhost:8000
+python main.py --port 9000     # custom port
+```
+
+### Download Commands
+
+```bash
+# Download a book as EPUB
+oreilly-ingest download 0123456789
+python main.py download 0123456789
+
+# Download as Markdown with separate files per chapter
+oreilly-ingest download 0123456789 --format markdown --separate
+
+# Download multiple formats
+oreilly-ingest download 0123456789 --format "markdown,pdf,json"
+
+# Download specific chapters only
+oreilly-ingest download 0123456789 --format markdown --chapters selected --chapter-list "1,2,3"
+```
+
+### Queue Management
+
+```bash
+oreilly-ingest queue add 0111111111 --format epub
+oreilly-ingest queue add 0222222222 --format "markdown,pdf"
+oreilly-ingest queue process
+oreilly-ingest queue list
+oreilly-ingest queue remove abc12345
+```
+
+### Check Config
+
+```bash
+oreilly-ingest config
+```
+
+### Export Formats
+
+| Format     | Aliases            | Notes                                                              |
+| ---------- | ------------------ | ------------------------------------------------------------------ |
+| EPUB       | `epub`             | Default format; available for full-book exports only               |
+| Markdown   | `markdown`, `md`   | Supports combined or separate chapter files                        |
+| JSON       | `json`             | Structured export; supports combined or separate chapter files     |
+| Plain text | `plaintext`, `txt` | Supports combined or separate chapter files                        |
+| PDF        | `pdf`              | Supports combined or separate chapter files                        |
+| Chunks     | `chunks`           | LLM-oriented chunked content; available for full-book exports only |
+
+### Chapter Selection
+
+```bash
+# Download every chapter (default)
+oreilly-ingest download 0123456789 --chapters all
+
+# Download selected chapters
+oreilly-ingest download 0123456789 \
+  --chapters selected \
+  --chapter-list "1,2,3"
+```
+
+### Output Modes
+
+For Markdown, JSON, plain-text, and PDF exports:
+
+```bash
+# Create one combined output file (default)
+oreilly-ingest download 0123456789 --format markdown --combined
+
+# Create one output file per chapter
+oreilly-ingest download 0123456789 --format markdown --separate
+```
 
 ## Architecture
 
 Plugin-based microkernel design:
 
-| Layer | Components |
-|-------|------------|
-| **Kernel** | Plugin registry, shared HTTP client |
-| **Core** | Auth, Book, Chapters, Assets, HtmlProcessor |
-| **Output** | Epub, Markdown, Pdf, PlainText, JsonExport |
-| **Utility** | Chunking, Token, Downloader |
+| Layer       | Components                                                               |
+| ----------- | ------------------------------------------------------------------------ |
+| **Kernel**  | Plugin registry, shared HTTP client                                      |
+| **Core**    | Auth, Book, Chapters, Assets, HtmlProcessor, CookieHandler, QueueHandler |
+| **Output**  | Epub, Markdown, Pdf, PlainText, JsonExport                               |
+| **Utility** | Chunking, Token, Downloader                                              |
 
 ### API
 
@@ -79,7 +188,6 @@ GET  /api/progress     - SSE stream
 
 Found a bug or have an idea? PRs and issues are always welcome!
 
-
 ## Recent Changes
 
 - **Chunking: streaming & memory fix** — `chunk_book()` now streams chunks directly to disk instead of accumulating in memory. Replaced `tiktoken` tokenizer with a word-count heuristic to avoid memory spikes on large books. (@zirkleta)
@@ -88,7 +196,7 @@ Found a bug or have an idea? PRs and issues are always welcome!
 
 ## License
 
-MIT
+[MIT](LICENSE)
 
 ## Star History
 
