@@ -2,13 +2,13 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
 OUTPUT_DIR = BASE_DIR / "output"
+STATE_DIR = BASE_DIR / "core" / "state"
 
-# Use data/ directory if it exists (Docker), otherwise use root (local dev)
+COOKIES_FILE = STATE_DIR / "cookies.json"
+COOKIES_TXT_FILE = STATE_DIR / "cookies.txt"
+QUEUE_FILE = STATE_DIR / "queue.json"
+
 DATA_DIR = BASE_DIR / "data"
-if DATA_DIR.exists():
-    COOKIES_FILE = DATA_DIR / "cookies.json"
-else:
-    COOKIES_FILE = BASE_DIR / "cookies.json"
 
 BASE_URL = "https://learning.oreilly.com"
 API_V1 = f"{BASE_URL}/api/v1"
