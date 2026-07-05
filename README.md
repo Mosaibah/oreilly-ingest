@@ -45,11 +45,10 @@ oreilly-ingest
 Or from a local checkout:
 
 ```bash
-git clone https://github.com/mosaibah/oreilly-downloader.git
-cd oreilly-downloader
+git clone https://github.com/mosaibah/oreilly-ingest.git
+cd oreilly-ingest
 pip install .
 oreilly-ingest
-```
 
 ### Python (venv)
 
