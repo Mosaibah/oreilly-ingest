@@ -52,19 +52,35 @@ class QueueManager:
         self._load_queue()
 
     def _load_queue(self):
-        """Load queue from file."""
+        """Load queue from file. Resets to empty if file is missing, empty, or corrupted."""
         with self._lock:
-            if self.queue_file.exists():
-                with open(self.queue_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    self.queue = [QueueItem.from_dict(item) for item in data]
+            if not self.queue_file.exists():
+                self.queue = []
+                return
+
+            try:
+                raw = self.queue_file.read_text(encoding="utf-8").strip()
+                if not raw:
+                    self.queue = []
+                    return
+                data = json.loads(raw)
+                if not isinstance(data, list):
+                    self.queue = []
+                    return
+                self.queue = [QueueItem.from_dict(item) for item in data]
+            except (json.JSONDecodeError, TypeError, KeyError, ValueError):
+                self.queue = []
 
     def _save_queue(self):
-        """Save queue to file."""
+        """Save queue to file atomically (write to tmp, then rename)."""
         with self._lock:
             self.queue_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.queue_file, "w", encoding="utf-8") as f:
-                json.dump([item.to_dict() for item in self.queue], f, indent=2)
+            tmp = self.queue_file.with_suffix(".json.tmp")
+            tmp.write_text(
+                json.dumps([item.to_dict() for item in self.queue], indent=2),
+                encoding="utf-8",
+            )
+            tmp.replace(self.queue_file)
 
     def add(self, item: QueueItem) -> str:
         """
