@@ -44,7 +44,7 @@ class QueueManager:
         Initialize queue manager.
 
         Args:
-            queue_file: Path to queue file. Defaults to core/state/queue.json.
+            queue_file: Path to queue file. Defaults to config.QUEUE_FILE.
         """
         self.queue_file = queue_file or config.QUEUE_FILE
         self.queue: list[QueueItem] = []

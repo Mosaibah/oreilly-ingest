@@ -31,8 +31,10 @@ class DownloadCommand:
         http = HttpClient(cookie_path)
 
         if not http._auth_cookies:
+            import config
             raise RuntimeError(
-                "No cookies found. Please ensure cookies.json or cookies.txt exists in core/state.\n"
+                f"No cookies found. Please ensure cookies.json or cookies.txt exists in:\n"
+                f"  {config.COOKIES_FILE.parent}\n"
                 "You can export cookies from your browser using the Netscape Cookie File format.\n"
                 "Or visit the web UI to upload cookies."
             )
@@ -364,7 +366,7 @@ class ConfigCommand:
         else:
             CliFormatter.print_error("  ✗ No cookies found")
             CliFormatter.print_info(
-                "    Place cookies.json or cookies.txt in core/state"
+                f"    Place cookies.json or cookies.txt in {config.STATE_DIR}"
             )
             all_good = False
             print()
