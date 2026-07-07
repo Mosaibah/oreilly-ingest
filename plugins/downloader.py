@@ -48,6 +48,7 @@ class DownloaderPlugin(Plugin):
         "plaintext",
         "plaintext-chapters",
         "json",
+        "json-chapters",
         "jsonl",
         "chunks",
     ])
@@ -418,16 +419,26 @@ class DownloaderPlugin(Plugin):
             result.files["plaintext"] = str(txt_path)
 
         # JSON
-        if "json" in formats:
-            report("generating_json", 97)
+        if "json" in formats or "json-chapters" in formats:
             json_plugin = self.kernel["json_export"]
-            json_path = json_plugin.generate(
-                book_dir=book_dir,
-                book_metadata=book_info,
-                chapters_data=chapters_data,
-                include_jsonl="jsonl" in formats,
-            )
-            result.files["json"] = str(json_path)
+
+            if "json-chapters" in formats:
+                report("generating_json_chapters", 97)
+                json_paths = json_plugin.generate_chapters(
+                    book_dir=book_dir,
+                    book_metadata=book_info,
+                    chapters_data=chapters_data,
+                )
+                result.files["json"] = [str(p) for p in json_paths]
+            else:
+                report("generating_json", 97)
+                json_path = json_plugin.generate(
+                    book_dir=book_dir,
+                    book_metadata=book_info,
+                    chapters_data=chapters_data,
+                    include_jsonl="jsonl" in formats,
+                )
+                result.files["json"] = str(json_path)
 
         # Chunks
         if "chunks" in formats:

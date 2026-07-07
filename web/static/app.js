@@ -160,7 +160,8 @@ function createBookCardHTML(book) {
             <img src="${book.cover_url}" alt="${book.title} cover" class="w-12 h-16 object-cover rounded shadow-sm flex-shrink-0" loading="lazy">
             <div class="flex-1 min-w-0">
                 <h3 class="text-[0.9375rem] font-semibold text-zinc-900 leading-snug truncate">${book.title}</h3>
-                <p class="text-sm text-zinc-500 truncate">${book.authors?.join(', ') || 'Unknown Author'}</p>
+                <p class="text-sm text-zinc-500 truncate">${book.authors?.join(", ") || "Unknown Author"}</p>
+                <p class="text-sm text-zinc-500 truncate">${book.id || "Unknown ID"}</p>
             </div>
             <svg class="expand-icon w-5 h-5 text-zinc-400 flex-shrink-0 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M6 9l6 6 6-6"/>
@@ -182,7 +183,8 @@ function createBookCardHTML(book) {
                     <img class="w-24 h-32 object-cover rounded-lg shadow-md flex-shrink-0" src="${getHighResCoverUrl(book.id)}" alt="${book.title} cover">
                     <div class="flex-1 min-w-0">
                         <h2 class="text-xl font-semibold text-zinc-900 leading-tight mb-1">${book.title}</h2>
-                        <p class="text-[0.9375rem] text-zinc-500 mb-3">by ${book.authors?.join(', ') || 'Unknown Author'}</p>
+                        <p class="text-sm text-zinc-500 truncate">id ${book.id || "Unknown ID"}</p>
+                        <p class="text-[0.9375rem] text-zinc-500 mb-3">by ${book.authors?.join(", ") || "Unknown Author"}</p>
                         <p class="text-sm text-zinc-500 mb-0.5">
                             <span class="text-zinc-400">Publisher:</span>
                             <span class="publisher-value text-zinc-500 animate-pulse-subtle">Loading...</span>

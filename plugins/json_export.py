@@ -119,6 +119,30 @@ class JsonExportPlugin(Plugin):
             "total_tokens": total_tokens,
         }
 
+    def generate_chapters(
+        self,
+        book_dir: Path,
+        book_metadata: dict,
+        chapters_data: list[tuple[str, str, str]],
+    ) -> list[Path]:
+        """Generate one JSON file per chapter in a Chapters/ subdirectory."""
+        title = book_metadata.get("title", "Unknown")
+        safe_title = sanitize_filename(title)
+        chapters_dir = book_dir / f"{safe_title}_json_chapters"
+        chapters_dir.mkdir(parents=True, exist_ok=True)
+
+        paths = []
+        for i, (filename, chapter_title, html) in enumerate(chapters_data):
+            chapter_data = self._process_chapter(i, filename, chapter_title, html)
+            chapter_file = chapters_dir / f"chapter_{i + 1:03d}.json"
+            chapter_file.write_text(
+                json.dumps(chapter_data, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            paths.append(chapter_file)
+
+        return paths
+
     def _write_jsonl(self, book_dir: Path, title: str, chapters: list[dict]) -> Path:
         """Write chapters as JSONL (one JSON object per line)."""
         jsonl_path = book_dir / f"{title}.jsonl"

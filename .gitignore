@@ -30,6 +30,8 @@ output/
 output-*/
 data/
 cookies.json
+cookies.*
+queue.json
 *.epub
 
 # Logs

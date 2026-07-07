@@ -6,7 +6,9 @@ import os
 import sys
 from pathlib import Path
 
-OUTPUT_DIR = Path(__file__).parent / "output"
+import config
+
+OUTPUT_DIR = config.OUTPUT_DIR
 
 
 def patch_file(jsonl_path: Path) -> int:

@@ -7,6 +7,7 @@ from pathlib import Path
 from curl_cffi import requests
 
 import config
+from core.state.cookies import CookieHandler
 
 
 class HttpClient:
@@ -19,18 +20,18 @@ class HttpClient:
         self.session = requests.Session(impersonate="safari17_0")
         self.session.headers.update(config.HEADERS)
         self.last_request_time = 0
+        self.cookies_file = cookies_file or config.COOKIES_FILE
 
-        cookies_path = cookies_file or config.COOKIES_FILE
-        if cookies_path.exists():
-            self._load_cookies(cookies_path)
+        if self.cookies_file.exists():
+            self._load_cookies(self.cookies_file)
 
     def _load_cookies(self, path: Path):
         with contextlib.suppress(json.JSONDecodeError, ValueError):
-            with open(path) as f:
-                cookies = json.load(f)
-            if isinstance(cookies, dict):
+            cookies = CookieHandler.load_cookies(path)
+            if cookies:
                 self._auth_cookies = {
-                    k: v for k, v in cookies.items()
+                    k: v
+                    for k, v in cookies.items()
                     if not k.startswith(self._AKAMAI_COOKIE_PREFIXES)
                 }
 
@@ -83,9 +84,7 @@ class HttpClient:
                 "Session token expired. Please copy fresh cookies from your browser and POST them to /api/cookies."
             )
         if response.status_code >= 400:
-            raise RuntimeError(
-                f"HTTP {response.status_code} fetching {response.url}"
-            )
+            raise RuntimeError(f"HTTP {response.status_code} fetching {response.url}")
 
     @staticmethod
     def _decode_jwt_payload(token: str) -> dict | None:
@@ -122,5 +121,5 @@ class HttpClient:
         """Clear and reload cookies from file. Used after browser login."""
         self._auth_cookies = {}
         self.session.cookies.clear()
-        if config.COOKIES_FILE.exists():
-            self._load_cookies(config.COOKIES_FILE)
+        if self.cookies_file.exists():
+            self._load_cookies(self.cookies_file)

@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from core import Kernel, create_default_kernel
+from core.state import CookieHandler
 from plugins import ChunkConfig
 from plugins.downloader import DownloadProgress
 import config
@@ -178,7 +179,7 @@ class DownloaderHandler(SimpleHTTPRequestHandler):
             return
 
         try:
-            config.COOKIES_FILE.write_text(json.dumps(data, indent=2))
+            CookieHandler.save_json_cookies(data, config.COOKIES_FILE)
             self.kernel.http.reload_cookies()
             self._send_json({"success": True})
         except Exception as e:
