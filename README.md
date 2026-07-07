@@ -30,8 +30,8 @@ Inspired by [safaribooks](https://github.com/lorenzodifuccia/safaribooks) by [@l
 ### Docker
 
 ```bash
-git clone https://github.com/mosaibah/oreilly-downloader.git
-cd oreilly-downloader
+git clone https://github.com/mosaibah/oreilly-ingest.git
+cd oreilly-ingest
 docker compose up -d
 ```
 
@@ -44,7 +44,7 @@ oreilly-ingest
 
 Or from a local checkout:
 
-```bash
+````bash
 git clone https://github.com/mosaibah/oreilly-ingest.git
 cd oreilly-ingest
 pip install .
@@ -53,12 +53,12 @@ oreilly-ingest
 ### Python (venv)
 
 ```bash
-git clone https://github.com/mosaibah/oreilly-downloader.git
-cd oreilly-downloader
+git clone https://github.com/mosaibah/oreilly-ingest.git
+cd oreilly-ingest
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python main.py
-```
+````
 
 Then open http://localhost:8000
 
