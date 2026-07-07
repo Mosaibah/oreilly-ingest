@@ -21,6 +21,7 @@ class QueueItem:
     all_chapters: bool = True
     selected_chapters: Optional[list[int]] = None
     skip_images: bool = False
+    combined: bool = True
     chunk_size: Optional[int] = None
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     status: str = "pending"

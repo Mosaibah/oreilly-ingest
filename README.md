@@ -132,10 +132,10 @@ oreilly-ingest config
 | Format     | Aliases            | Notes                                                              |
 | ---------- | ------------------ | ------------------------------------------------------------------ |
 | EPUB       | `epub`             | Default format; available for full-book exports only               |
-| Markdown   | `markdown`, `md`   | Supports combined or separate chapter files                        |
-| JSON       | `json`             | Structured export; supports combined or separate chapter files     |
+| Markdown   | `markdown`, `md`   | Per-chapter files only                                             |
+| JSON       | `json`             | Structured export; supports combined or separate chapter files    |
 | Plain text | `plaintext`, `txt` | Supports combined or separate chapter files                        |
-| PDF        | `pdf`              | Supports combined or separate chapter files                        |
+| PDF        | `pdf`              | Supports combined or separate chapter files (`pdf-chapters`)       |
 | Chunks     | `chunks`           | LLM-oriented chunked content; available for full-book exports only |
 
 ### Chapter Selection

@@ -206,9 +206,12 @@ class CLIApp:
                     return 1
 
                 try:
-                    selected_chapters = [
-                        int(ch.strip()) for ch in args.chapter_list.split(",")
-                    ]
+                    selected_chapters = []
+                    for ch in args.chapter_list.split(","):
+                        n = int(ch.strip())
+                        if n < 1:
+                            raise ValueError("chapters are 1-based")
+                        selected_chapters.append(n - 1)
                 except ValueError:
                     CliFormatter.print_error(
                         "Invalid chapter list format. Use comma-separated numbers: 1,2,3"
@@ -254,9 +257,12 @@ class CLIApp:
                         return 1
 
                     try:
-                        selected_chapters = [
-                            int(ch.strip()) for ch in args.chapter_list.split(",")
-                        ]
+                        selected_chapters = []
+                        for ch in args.chapter_list.split(","):
+                            n = int(ch.strip())
+                            if n < 1:
+                                raise ValueError("chapters are 1-based")
+                            selected_chapters.append(n - 1)
                     except ValueError:
                         CliFormatter.print_error(
                             "Invalid chapter list format. Use comma-separated numbers: 1,2,3"

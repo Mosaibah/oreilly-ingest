@@ -86,6 +86,19 @@ class DownloadCommand:
             signal.signal(signal.SIGINT, self._handle_sigint)
 
         try:
+            # Map --separate/--combined to format variants.
+            # Formats with -chapters variants produce per-chapter output.
+            _CHAPTER_VARIANTS = {
+                "markdown": "markdown-chapters",
+                "pdf": "pdf-chapters",
+                "plaintext": "plaintext-chapters",
+                "json": "json-chapters",
+            }
+            if not combined:
+                formats = [_CHAPTER_VARIANTS.get(f, f) for f in formats]
+            else:
+                formats = [f for f in formats if not f.endswith("-chapters")]
+
             # Validate session
             CliFormatter.print_info("Validating session...")
             auth = self.kernel["auth"]
@@ -210,6 +223,7 @@ class QueueCommand:
             all_chapters=all_chapters,
             selected_chapters=selected_chapters,
             skip_images=skip_images,
+            combined=combined,
             chunk_size=chunk_size,
         )
 
@@ -278,6 +292,7 @@ class QueueCommand:
                 all_chapters=item.all_chapters,
                 selected_chapters=item.selected_chapters,
                 skip_images=item.skip_images,
+                combined=item.combined,
                 chunk_size=item.chunk_size,
                 progress_position=position,
                 progress_label=item.book_id,
