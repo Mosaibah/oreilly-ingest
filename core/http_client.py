@@ -10,8 +10,10 @@ import config
 
 
 class HttpClient:
-    # Akamai bot-management cookies are tied to the original browser TLS session.
-    # Sending them from a non-browser client causes Akamai to return 403.
+    # Akamai bot-management cookies (_abck, bm_*) must be sent: combined with the
+    # safari17_0 TLS impersonation below, Akamai accepts the browser's _abck token
+    # and returns 200. Stripping them causes Akamai to return 403 on protected
+    # endpoints (e.g. /api/v2/epubs/), which surfaces as a spurious "auth" error.
     _AKAMAI_COOKIE_PREFIXES = ("_abck", "bm_", "ak_", "akaalb_")
 
     def __init__(self, cookies_file: Path | None = None):
@@ -29,14 +31,16 @@ class HttpClient:
             with open(path) as f:
                 cookies = json.load(f)
             if isinstance(cookies, dict):
-                self._auth_cookies = {
-                    k: v for k, v in cookies.items()
-                    if not k.startswith(self._AKAMAI_COOKIE_PREFIXES)
-                }
+                # Keep all cookies, including the Akamai bot-management cookies
+                # (_abck, bm_*) — they are required to pass Akamai (see class note).
+                self._auth_cookies = dict(cookies)
 
     def _apply_auth_cookies(self):
-        """Reset session to only auth cookies, discarding any Akamai cookies
-        injected by previous responses."""
+        """Reset the session to the original browser cookies before each request.
+
+        Replaying the known-good browser cookies (rather than the evolving set
+        Akamai injects via Set-Cookie) keeps every request looking like the
+        original browser session."""
         self.session.cookies.clear()
         self.session.cookies.update(self._auth_cookies)
 
@@ -47,12 +51,21 @@ class HttpClient:
         self.last_request_time = time.time()
 
     def get(self, url: str, **kwargs) -> requests.Response:
-        self._rate_limit()
         if not url.startswith("http"):
             url = config.BASE_URL + url
         kwargs.setdefault("timeout", config.REQUEST_TIMEOUT)
-        self._apply_auth_cookies()
-        return self.session.get(url, **kwargs)
+
+        last_exc = None
+        for attempt in range(config.MAX_RETRIES):
+            self._rate_limit()
+            self._apply_auth_cookies()
+            try:
+                return self.session.get(url, **kwargs)
+            except Exception as e:  # curl_cffi raises on timeout/connection errors
+                last_exc = e
+                if attempt < config.MAX_RETRIES - 1:
+                    time.sleep(config.RETRY_BACKOFF * (attempt + 1))
+        raise last_exc
 
     def get_json(self, url: str, **kwargs) -> dict:
         response = self.get(url, **kwargs)
@@ -79,8 +92,17 @@ class HttpClient:
                 raise RuntimeError(
                     "Not authenticated. Please copy cookies from your browser and POST them to /api/cookies."
                 )
+            # A 403 has two distinct causes. Only call it "expired" when the JWT
+            # actually is; otherwise it is Akamai bot-blocking the request, and
+            # telling the user to refresh the *token* is misleading.
+            if self._jwt_expired():
+                raise RuntimeError(
+                    "Session token expired. Please copy fresh cookies from your browser and POST them to /api/cookies."
+                )
             raise RuntimeError(
-                "Session token expired. Please copy fresh cookies from your browser and POST them to /api/cookies."
+                "Blocked by O'Reilly bot protection (Akamai 403) even though the session "
+                "token is still valid. Copy fresh cookies from your browser — including the "
+                "_abck and bm_* cookies — and POST them to /api/cookies."
             )
         if response.status_code >= 400:
             raise RuntimeError(

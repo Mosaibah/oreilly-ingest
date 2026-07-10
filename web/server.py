@@ -4,7 +4,7 @@ import json
 import re
 import threading
 import traceback
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -60,6 +60,15 @@ class DownloaderHandler(SimpleHTTPRequestHandler):
             self._handle_formats()
         else:
             super().do_GET()
+
+    def do_OPTIONS(self):
+        """Answer CORS preflight so browser clients can POST cookies/JSON."""
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Max-Age", "86400")
+        self.end_headers()
 
     def do_POST(self):
         content_length = int(self.headers.get("Content-Length", 0))
@@ -342,12 +351,16 @@ class DownloaderHandler(SimpleHTTPRequestHandler):
         print(f"[HTTP] {args[0]}")
 
 
-def create_server(host: str = "localhost", port: int = 8000) -> HTTPServer:
-    """Create and configure the HTTP server."""
+def create_server(host: str = "localhost", port: int = 8000) -> ThreadingHTTPServer:
+    """Create and configure the HTTP server.
+
+    Uses a threading server so a single slow or stalled client (or a long
+    download) cannot block status/progress/cookie requests.
+    """
     kernel = create_default_kernel()
     DownloaderHandler.kernel = kernel
 
-    server = HTTPServer((host, port), DownloaderHandler)
+    server = ThreadingHTTPServer((host, port), DownloaderHandler)
     return server
 
 

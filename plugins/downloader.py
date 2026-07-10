@@ -184,14 +184,15 @@ class DownloaderPlugin(Plugin):
         html_processor = self.kernel["html_processor"]
         output_plugin = self.kernel["output"]
 
-        # Phase 1: Validate session and fetch metadata
+        # Phase 1: Fetch metadata.
+        #
+        # We intentionally do NOT hard-fail here on the local JWT expiry check.
+        # O'Reilly serves content for a grace period past the token's `exp`, and
+        # the local clock check can lag the real session (e.g. cookies read from
+        # the browser's on-disk store trail the live in-memory token). Let the
+        # actual request be the source of truth — it raises a descriptive error
+        # (expired vs. Akamai bot-block) if the session really is rejected.
         report("starting", 0)
-        jwt_status = self.http.get_jwt_status()
-        if jwt_status is not None and not jwt_status["valid"]:
-            raise RuntimeError(
-                "Session token expired. Please copy fresh cookies from your browser and POST them to /api/cookies."
-            )
-
         report("fetching_metadata", 5)
         book_info = book_plugin.fetch(book_id)
 

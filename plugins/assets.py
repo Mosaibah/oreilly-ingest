@@ -31,14 +31,23 @@ class AssetsPlugin(Plugin):
         progress_callback: Callable[[int, int], None] | None = None,
     ) -> dict[str, Path]:
         downloaded = {}
+        failed = []
         total = len(urls)
         for i, url in enumerate(urls):
             filename = url.split("/")[-1]
             save_path = output_dir / "Images" / filename
-            self.download_image(url, save_path)
-            downloaded[url] = save_path
+            try:
+                self.download_image(url, save_path)
+                downloaded[url] = save_path
+            except Exception as e:
+                # A single unreachable/timed-out image must not abort the whole
+                # book. Skip it, keep going, and report the count at the end.
+                failed.append(url)
+                print(f"[assets] skipping image after retries: {filename} ({e})")
             if progress_callback:
                 progress_callback(i + 1, total)
+        if failed:
+            print(f"[assets] {len(failed)}/{total} images could not be downloaded and were skipped")
         return downloaded
 
     def download_all_css(

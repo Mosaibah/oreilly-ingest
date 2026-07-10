@@ -39,3 +39,4 @@ cookies.json
 .coverage
 .pytest_cache/
 htmlcov/
+.venv-cookies/
