@@ -17,6 +17,11 @@ API_V2 = f"{BASE_URL}/api/v2"
 REQUEST_DELAY = 0.5
 REQUEST_TIMEOUT = 30
 
+# Retry transient network failures (timeouts, connection resets, Akamai
+# throttling stalls) so a single bad response doesn't abort a whole download.
+MAX_RETRIES = 4
+RETRY_BACKOFF = 1.5
+
 HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "Accept-Encoding": "gzip, deflate",
