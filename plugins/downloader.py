@@ -49,6 +49,7 @@ class DownloaderPlugin(Plugin):
         "plaintext-chapters",
         "json",
         "jsonl",
+        "toon",
         "chunks",
     ])
 
@@ -70,7 +71,7 @@ class DownloaderPlugin(Plugin):
         else:
             # Handle "all" special case
             if format_input == "all":
-                return ["epub", "markdown", "pdf", "plaintext", "json", "chunks"]
+                return ["epub", "markdown", "pdf", "plaintext", "json", "toon", "chunks"]
 
             # Split comma-separated and clean
             raw_formats = [f.strip().lower() for f in format_input.split(",") if f.strip()]
@@ -113,6 +114,7 @@ class DownloaderPlugin(Plugin):
             "plaintext-chapters": "Separate text file per chapter",
             "json": "Structured JSON export",
             "jsonl": "JSON Lines format (includes json)",
+            "toon": "Token-Oriented Object Notation (token-efficient JSON for LLMs)",
             "chunks": "Chunked content for LLM processing",
         }
 
@@ -429,6 +431,17 @@ class DownloaderPlugin(Plugin):
                 include_jsonl="jsonl" in formats,
             )
             result.files["json"] = str(json_path)
+
+        # TOON
+        if "toon" in formats:
+            report("generating_toon", 97)
+            toon_plugin = self.kernel["toon_export"]
+            toon_path = toon_plugin.generate(
+                book_dir=book_dir,
+                book_metadata=book_info,
+                chapters_data=chapters_data,
+            )
+            result.files["toon"] = str(toon_path)
 
         # Chunks
         if "chunks" in formats:

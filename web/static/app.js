@@ -227,6 +227,20 @@ function createBookCardHTML(book) {
                                     JSON
                                 </span>
                             </label>
+                            <label class="format-option cursor-pointer relative">
+                                <input type="radio" name="format" value="toon" class="sr-only peer">
+                                <span class="flex items-center gap-1.5 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-600 transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light peer-checked:text-oreilly-blue-dark hover:bg-white hover:border-zinc-300">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M4 7V5a1 1 0 0 1 1-1h2"/>
+                                        <path d="M17 4h2a1 1 0 0 1 1 1v2"/>
+                                        <path d="M20 17v2a1 1 0 0 1-1 1h-2"/>
+                                        <path d="M7 20H5a1 1 0 0 1-1-1v-2"/>
+                                        <line x1="8" y1="12" x2="16" y2="12"/>
+                                    </svg>
+                                    TOON
+                                </span>
+                                <span class="absolute -top-1.5 -right-1.5 text-[0.5rem] font-bold uppercase px-1 py-px bg-emerald-500 text-white rounded shadow-sm peer-checked:bg-oreilly-blue">LLM</span>
+                            </label>
                             <label class="format-option cursor-pointer">
                                 <input type="radio" name="format" value="plaintext" class="sr-only peer">
                                 <span class="flex items-center gap-1.5 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-600 transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light peer-checked:text-oreilly-blue-dark hover:bg-white hover:border-zinc-300">
@@ -521,6 +535,9 @@ function setupBookCardEvents(div, book) {
 // Formats that only support combined output (entire book as single file)
 const BOOK_ONLY_FORMATS = ['epub', 'chunks'];
 
+// Structured single-file formats: chapter selection works, but output is always one combined file
+const SINGLE_FILE_FORMATS = ['json', 'toon'];
+
 function handleFormatChange(cardElement, format, bookId) {
     const outputSelection = cardElement.querySelector('.output-selection');
     const outputOptions = cardElement.querySelector('.output-options');
@@ -531,8 +548,9 @@ function handleFormatChange(cardElement, format, bookId) {
     // Show/hide chunking options
     chunkingOptions.classList.toggle('hidden', format !== 'chunks');
 
-    if (BOOK_ONLY_FORMATS.includes(format)) {
-        // Lock to "Combined" for EPUB and Chunks - hide output options, show notice
+    if (BOOK_ONLY_FORMATS.includes(format) || SINGLE_FILE_FORMATS.includes(format)) {
+        // Lock to "Combined" for EPUB/Chunks (no chapter output) and JSON/TOON
+        // (structured single-file formats) - hide output options, show notice
         outputOptions.classList.add('hidden');
         lockedNotice.classList.remove('hidden');
 
@@ -724,7 +742,7 @@ async function download(cardElement) {
 
     // Determine final format string based on format + output style
     let finalFormat = format;
-    if (outputStyle === 'separate' && !BOOK_ONLY_FORMATS.includes(format)) {
+    if (outputStyle === 'separate' && !BOOK_ONLY_FORMATS.includes(format) && !SINGLE_FILE_FORMATS.includes(format)) {
         // For separate output, append -chapters to format (e.g., pdf-chapters, markdown-chapters)
         finalFormat = `${format}-chapters`;
     }

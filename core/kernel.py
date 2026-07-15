@@ -31,6 +31,7 @@ def create_default_kernel() -> Kernel:
         TokenPlugin,
         PlainTextPlugin,
         JsonExportPlugin,
+        ToonExportPlugin,
         ChunkingPlugin,
         OutputPlugin,
         SystemPlugin,
@@ -52,6 +53,7 @@ def create_default_kernel() -> Kernel:
     kernel.register("pdf", PdfPlugin())
     kernel.register("plaintext", PlainTextPlugin())
     kernel.register("json_export", JsonExportPlugin())
+    kernel.register("toon_export", ToonExportPlugin())
     kernel.register("chunking", ChunkingPlugin())
     kernel.register("token", TokenPlugin())
 

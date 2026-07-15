@@ -10,6 +10,7 @@ from .pdf import PdfPlugin
 from .token import TokenPlugin
 from .plaintext import PlainTextPlugin
 from .json_export import JsonExportPlugin
+from .toon_export import ToonExportPlugin
 from .chunking import ChunkingPlugin, ChunkConfig
 
 # Orchestration and system plugins
