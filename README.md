@@ -2,7 +2,7 @@
 
 We're in the AI era. You want to chat with your favorite technical books using Claude Code, Cursor, or any LLM tool. This gets you there.
 
-Export any O'Reilly book to Markdown, PDF, EPUB, JSON, or plain text. Download by chapters so you don't burn through your context window.
+Export any O'Reilly book to Markdown, PDF, EPUB, JSON, TOON, or plain text. Download by chapters so you don't burn through your context window.
 
 > Requires a valid O'Reilly Learning subscription.
 
@@ -18,7 +18,7 @@ Inspired by [safaribooks](https://github.com/lorenzodifuccia/safaribooks) by [@l
 ## Features
 
 - **Export by chapters** - save tokens, focus on what matters
-- **LLM-ready formats** - Markdown, JSON, plain text optimized for AI
+- **LLM-ready formats** - Markdown, JSON, TOON, plain text optimized for AI
 - **Traditional formats** - PDF and EPUB 3
 - **O'Reilly V2 API** - fast and reliable
 - **Images & styles included** - complete book experience
@@ -62,7 +62,7 @@ Plugin-based microkernel design:
 |-------|------------|
 | **Kernel** | Plugin registry, shared HTTP client |
 | **Core** | Auth, Book, Chapters, Assets, HtmlProcessor |
-| **Output** | Epub, Markdown, Pdf, PlainText, JsonExport |
+| **Output** | Epub, Markdown, Pdf, PlainText, JsonExport, ToonExport |
 | **Utility** | Chunking, Token, Downloader |
 
 ### API
