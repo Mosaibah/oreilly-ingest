@@ -1,6 +1,6 @@
 # O'Reilly Ingest
 
-We're in the AI era. You want to chat with your favorite technical books using Claude Code, Cursor, or any LLM tool. This gets you there.
+We're in the AI era. You want to chat with your favorite technical books using Gemini CLI, Cursor, or any LLM tool. This gets you there.
 
 Export any O'Reilly book to Markdown, PDF, EPUB, JSON, TOON, or plain text. Download by chapters so you don't burn through your context window.
 

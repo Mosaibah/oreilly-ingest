@@ -1,6 +1,17 @@
-# CLAUDE.md
+# GEMINI.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Gemini CLI when working with code in this repository.
+
+## Required Project Documents
+
+Gemini CLI must consult these documents to ensure compliance with project standards and governance:
+- `README.md`: Project overview and quick start.
+- `docs/PROJECT_BRIEF.md`: Strategic intent and product goals.
+- `docs/PRODUCT_SPEC.md`: Technical requirements for the export format.
+- `docs/ARCHITECTURE.md`: System design and responsibility boundaries.
+- `docs/AI_RULES.md`: Non-negotiable agent behavior and stop rules.
+- `docs/TEST_PLAN.md`: Quality gates and verification procedures.
+- `docs/SOURCE_READY_MARKDOWN_STANDARD.md`: Explicit Markdown quality and structural requirements.
 
 ## Project Overview
 
