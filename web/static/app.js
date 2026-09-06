@@ -1009,6 +1009,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.id === 'cookie-modal') hideCookieModal();
     };
 
+    // Copy console command in cookie modal
+    const copyBtn = document.getElementById('copy-command-btn');
+    copyBtn.onclick = async () => {
+        const command = document.getElementById('cookie-command').textContent;
+        try {
+            await navigator.clipboard.writeText(command);
+            copyBtn.textContent = 'Copied!';
+        } catch {
+            copyBtn.textContent = 'Copy failed';
+        }
+        copyBtn.disabled = true;
+        setTimeout(() => {
+            copyBtn.textContent = 'Copy';
+            copyBtn.disabled = false;
+        }, 2000);
+    };
+
     // Search
     let searchTimeout;
     const searchInput = document.getElementById('search-input');
