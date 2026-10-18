@@ -1,6 +1,7 @@
 """PDF generation plugin using WeasyPrint."""
 
 import html
+import posixpath
 import re
 import sys
 from pathlib import Path
@@ -174,7 +175,7 @@ class PdfPlugin(Plugin):
             if not xhtml_path.exists():
                 continue
 
-            body = self._extract_chapter_body(xhtml_path)
+            body = self._extract_chapter_body(xhtml_path, oebps)
             chapter_title = self._escape_html(chapter.get("title", f"Chapter {i+1}"))
 
             chapter_html = f'''<!DOCTYPE html>
@@ -230,7 +231,7 @@ class PdfPlugin(Plugin):
             if not xhtml_path.exists():
                 continue
 
-            body = self._extract_chapter_body(xhtml_path)
+            body = self._extract_chapter_body(xhtml_path, oebps)
             chapter_id = Path(chapter["filename"]).stem
             chapter_title = self._escape_html(chapter.get("title", ""))
 
@@ -322,8 +323,8 @@ class PdfPlugin(Plugin):
         <ul>{toc_items}</ul>
     </section>'''
 
-    def _extract_chapter_body(self, xhtml_path: Path) -> str:
-        """Extract body content from XHTML file."""
+    def _extract_chapter_body(self, xhtml_path: Path, oebps: Path) -> str:
+        """Extract body content from XHTML file, with URLs relative to OEBPS."""
         content = xhtml_path.read_text(encoding="utf-8")
 
         # Find <body> content
@@ -333,10 +334,24 @@ class PdfPlugin(Plugin):
             re.DOTALL | re.IGNORECASE,
         )
 
-        if body_match:
-            return body_match.group(1)
+        body = body_match.group(1) if body_match else content
 
-        return content
+        # Chapters may live in a subdirectory (e.g. OEBPS/Text/) and reference
+        # assets as "../Images/x.png". The combined document is rendered with
+        # OEBPS as its base, so re-anchor those references to OEBPS.
+        chapter_dir = xhtml_path.parent.relative_to(oebps).as_posix()
+        return re.sub(
+            r'(<img\b[^>]*?\ssrc=)(["\'])(.*?)\2',
+            lambda m: f"{m.group(1)}{m.group(2)}{self._rebase_url(m.group(3), chapter_dir)}{m.group(2)}",
+            body,
+            flags=re.DOTALL | re.IGNORECASE,
+        )
+
+    def _rebase_url(self, url: str, from_dir: str) -> str:
+        """Rewrite a URL relative to OEBPS/from_dir so it is relative to OEBPS."""
+        if from_dir in ("", ".") or re.match(r'^([a-z][a-z0-9+.-]*:|/|#)', url, re.IGNORECASE):
+            return url
+        return posixpath.normpath(posixpath.join(from_dir, url))
 
     def _load_css_files(self, oebps: Path, css_files: list[str]) -> str:
         """Load and concatenate CSS files."""
@@ -346,7 +361,13 @@ class PdfPlugin(Plugin):
         for i, _ in enumerate(css_files):
             css_path = styles_dir / f"Style{i:02d}.css"
             if css_path.exists():
-                css_parts.append(css_path.read_text(encoding="utf-8"))
+                # The CSS is inlined into the document, so url() references
+                # relative to Styles/ must be re-anchored to OEBPS.
+                css_parts.append(re.sub(
+                    r'url\(\s*(["\']?)([^)"\']+)\1\s*\)',
+                    lambda m: f'url("{self._rebase_url(m.group(2).strip(), "Styles")}")',
+                    css_path.read_text(encoding="utf-8"),
+                ))
 
         return "\n".join(css_parts)
 
