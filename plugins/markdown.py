@@ -61,7 +61,13 @@ class MarkdownPlugin(Plugin):
         return None
 
     def _fix_image_paths(self, markdown: str) -> str:
-        return re.sub(r"\]\(Images/", "](./Images/", markdown)
+        # Markdown mirrors the chapter hierarchy in OEBPS, but images remain
+        # shared under OEBPS/Images. Keep the chapter's existing parent prefix.
+        return re.sub(
+            r"\]\((?:\./)?((?:\.\./)*)Images/",
+            lambda match: f"](../{match.group(1)}OEBPS/Images/",
+            markdown,
+        )
 
     def _clean_whitespace(self, markdown: str) -> str:
         markdown = re.sub(r"\n{3,}", "\n\n", markdown)
