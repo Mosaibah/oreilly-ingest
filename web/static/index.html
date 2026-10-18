@@ -145,7 +145,16 @@
                         <li>Open browser console <kbd class="px-1.5 py-0.5 bg-zinc-100 rounded text-xs font-mono">F12</kbd> → Console</li>
                         <li>Paste this command and press Enter:</li>
                     </ol>
-                    <pre class="bg-zinc-900 text-zinc-100 text-xs p-4 rounded-xl overflow-x-auto font-mono leading-relaxed"><code>JSON.stringify(document.cookie.split(';').map(c=>c.split('=')).reduce((r,[k,v])=>({...r,[k.trim()]:v?.trim()}),{}))</code></pre>
+                    <div class="relative">
+                        <pre class="bg-zinc-900 text-zinc-100 text-xs p-4 pr-24 rounded-xl overflow-x-auto font-mono leading-relaxed"><code id="cookie-command">JSON.stringify(document.cookie.split(';').map(c=>c.split('=')).reduce((r,[k,v])=>({...r,[k.trim()]:v?.trim()}),{}))</code></pre>
+                        <button
+                            id="copy-command-btn"
+                            type="button"
+                            aria-label="Copy command to clipboard"
+                            title="Copy command to clipboard"
+                            class="absolute top-2.5 right-2 px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-zinc-100 text-xs rounded-lg font-medium transition-colors duration-150"
+                        >Copy</button>
+                    </div>
                     <p class="text-sm">Copy the output and paste below:</p>
                 </div>
 
