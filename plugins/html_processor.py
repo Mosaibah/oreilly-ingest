@@ -1,6 +1,7 @@
 import re
 import shutil
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 from .base import Plugin
@@ -73,10 +74,15 @@ class HtmlProcessorPlugin(Plugin):
                 else:
                     continue
 
-            if href.endswith(".html"):
-                href = href.replace(".html", ".xhtml")
-
-            a["href"] = href
+            # Rewrite only the path extension; preserve fragment/query intact
+            # (e.g. ch04.html#anchor -> ch04.xhtml#anchor)
+            parts = urlsplit(href)
+            if parts.path.endswith(".html"):
+                a["href"] = urlunsplit(
+                    parts._replace(path=parts.path[:-5] + ".xhtml")
+                )
+            else:
+                a["href"] = href
 
     def _handle_data_template_styles(self, soup):
         for style in soup.find_all("style"):
