@@ -36,12 +36,26 @@ class MarkdownPlugin(Plugin):
         md_dir.mkdir(parents=True, exist_ok=True)
 
         readme = f"# {book_info.get('title', 'Unknown')}\n\n"
+        readme += f"**Content Format:** {book_info.get('content_format', 'book')}\n\n"
         readme += f"**Authors:** {', '.join(book_info.get('authors', []))}\n\n"
         readme += f"**Publishers:** {', '.join(book_info.get('publishers', []))}\n\n"
+        if pub_date := book_info.get("publication_date"):
+            readme += f"**Publication Date:** {pub_date}\n\n"
+        if isbn := book_info.get("isbn"):
+            readme += f"**ISBN:** {isbn}\n\n"
+        if duration := book_info.get("duration_seconds"):
+            readme += f"**Total Duration:** {duration // 3600}h {(duration % 3600) // 60}m ({duration}s)\n\n"
+        if resources := book_info.get("resources"):
+            readme += "## Exercises & Supplemental Resources\n\n"
+            for res in resources:
+                if r_url := res.get("url"):
+                    r_desc = res.get("description") or res.get("type") or "Resource"
+                    readme += f"- **{r_desc}:** {r_url}\n"
+            readme += "\n"
         readme += "## Chapters\n\n"
 
         for filename, title, html in chapters:
-            md_filename = filename.replace(".html", ".md").replace(".xhtml", ".md")
+            md_filename = re.sub(r"\.(?:x?html?|xml)$", ".md", filename, flags=re.IGNORECASE)
             self.save_chapter(html, title, md_dir / md_filename)
             readme += f"- [{title}]({md_filename})\n"
 

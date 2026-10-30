@@ -30,7 +30,10 @@ output/
 output-*/
 data/
 cookies.json
+cookies.backup.json
 *.epub
+USO_LOCAL.md
+start.sh
 
 # Logs
 *.log

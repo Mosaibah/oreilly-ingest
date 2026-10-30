@@ -44,7 +44,6 @@ class EpubPlugin(Plugin):
         artifacts = [
             output_dir / "mimetype",
             output_dir / "META-INF",
-            output_dir / "OEBPS",
         ]
         for artifact in artifacts:
             if artifact.is_file():

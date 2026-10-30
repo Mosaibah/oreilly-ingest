@@ -13,6 +13,14 @@ class AuthPlugin(Plugin):
 
     def get_status(self) -> dict:
         jwt_status = self.http.get_jwt_status()
+        if jwt_status is not None and jwt_status["valid"]:
+            return jwt_status
+        try:
+            response = self.http.get("/api/v1/user/")
+            if response.status_code == 200:
+                return {"valid": True, "reason": None}
+        except Exception:
+            pass
         if jwt_status is not None:
             return jwt_status
         response = self.http.get("/profile/")
