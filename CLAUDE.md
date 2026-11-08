@@ -20,6 +20,9 @@ python main.py --port 9000        # Custom port
 
 # Run with venv directly
 .venv/bin/python main.py
+
+# Run tests
+python -m unittest discover tests
 ```
 
 ## Architecture
@@ -69,6 +72,29 @@ Use V2 APIs primarily:
 - **V2 Epubs** (`/api/v2/epubs/urn:orm:book:{ID}/`) - spine, chapters URL, TOC URL
 - **V2 Chapters** (`/api/v2/epub-chapters/`) - full chapter metadata with `related_assets`
 - **V2 Content** returns `sbo-rt-content` div directly (no full HTML parsing needed)
+
+### Search and multi-language books
+
+- Translated editions (Japanese etc.) are **separate books** with their own
+  ISBNs and a `language` field on the epub record ("en", "ja", …).
+- The search backend does **not** tokenize CJK metadata: keyword queries in
+  Japanese return 0 results, and even Japanese ISBNs are invisible unless the
+  request carries `languages=ja`.
+- `BookPlugin.search(query, language=)` forwards `languages=` to the API and,
+  for id-shaped queries (URL/URN/ISBN recognized by `normalize_book_query`),
+  **probes each language** in `SEARCH_PROBE_LANGUAGES` until it hits.
+- `BookPlugin.find_translations(book_id)` searches the **original title** under
+  each language filter to surface translated editions → exposed at
+  `GET /api/book/{id}/translations` and rendered as cards in the web UI.
+
+### Auth model
+
+Search is the **only entitlement-gated endpoint**; epub metadata, chapter
+lists, content files and covers are served **publicly**. The `orm-jwt` token
+expires after ~15 minutes (download output then omits authors), so `fetch()`
+downgrades search failures to a fallback (epub title + constructed
+`.../covers/urn:orm:book:{id}/1200w/` cover URL) instead of failing the
+download. `scripts/refresh_cookies.py --watch` re-syncs cookies from Chrome.
 
 ## Content Pipeline
 

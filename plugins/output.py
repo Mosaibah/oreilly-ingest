@@ -57,6 +57,12 @@ class OutputPlugin(Plugin):
             folder_title = book_id
 
         folder_name = slugify(folder_title)
+        if not folder_name:
+            # Non-Latin titles (e.g. Japanese/Chinese) slugify to an empty
+            # string; fall back to the stable book id so the output never
+            # collapses onto the output directory itself.
+            folder_name = book_id or "book"
+
         book_dir = output_dir / folder_name
 
         # Handle same-title-different-book conflicts
