@@ -44,6 +44,18 @@ class HttpClient:
         self.session.cookies.clear()
         self.session.cookies.update(self._auth_cookies)
 
+    def _capture_updated_cookies(self):
+        """If O'Reilly issues refreshed auth cookies (orm-jwt, orm-rt), persist them."""
+        updated = False
+        for key in ("orm-jwt", "orm-rt", "groot_sessionid"):
+            new_val = self.session.cookies.get(key)
+            if new_val and new_val != self._auth_cookies.get(key):
+                self._auth_cookies[key] = new_val
+                updated = True
+        if updated:
+            with contextlib.suppress(Exception):
+                config.COOKIES_FILE.write_text(json.dumps(self._auth_cookies, indent=2))
+
     def _rate_limit(self):
         elapsed = time.time() - self.last_request_time
         if elapsed < config.REQUEST_DELAY:
@@ -60,7 +72,9 @@ class HttpClient:
             self._rate_limit()
             self._apply_auth_cookies()
             try:
-                return self.session.get(url, **kwargs)
+                resp = self.session.get(url, **kwargs)
+                self._capture_updated_cookies()
+                return resp
             except Exception as e:  # curl_cffi raises on timeout/connection errors
                 last_exc = e
                 if attempt < config.MAX_RETRIES - 1:
@@ -133,6 +147,15 @@ class HttpClient:
         exp = payload.get("exp", 0)
         expires_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(exp))
         if time.time() > exp - 60:
+            # Try refreshing via O'Reilly if we have a refresh token (orm-rt)
+            if self._auth_cookies.get("orm-rt"):
+                with contextlib.suppress(Exception):
+                    self.get("/api/v1/user/")
+                    token = self._auth_cookies.get("orm-jwt")
+                    payload = self._decode_jwt_payload(token) if token else None
+                    if payload and time.time() <= payload.get("exp", 0) - 60:
+                        expires_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(payload["exp"]))
+                        return {"valid": True, "reason": None, "expires_at": expires_at}
             return {"valid": False, "reason": "token_expired", "expires_at": expires_at}
         return {"valid": True, "reason": None, "expires_at": expires_at}
 

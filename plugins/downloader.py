@@ -51,12 +51,15 @@ class DownloaderPlugin(Plugin):
         "jsonl",
         "toon",
         "chunks",
+        "video",
+        "video-chapters",
     ])
 
     # Aliases for user convenience (e.g., CLI shorthand)
     FORMAT_ALIASES = {
         "md": "markdown",
         "txt": "plaintext",
+        "mp4": "video",
     }
 
     # Formats that only support entire book (no chapter selection)
@@ -116,6 +119,8 @@ class DownloaderPlugin(Plugin):
             "jsonl": "JSON Lines format (includes json)",
             "toon": "Token-Oriented Object Notation (token-efficient JSON for LLMs)",
             "chunks": "Chunked content for LLM processing",
+            "video": "MP4 video lessons + WebVTT subtitles + Markdown transcripts (alias: mp4)",
+            "video-chapters": "MP4 video lessons per selected chapter/clip",
         }
 
     @classmethod
@@ -375,12 +380,30 @@ class DownloaderPlugin(Plugin):
             )
             result.files["epub"] = str(epub_path)
 
-        # Markdown
-        if "markdown" in formats or "md" in formats or "markdown-chapters" in formats:
+        # Markdown (also generated automatically when downloading video courses for RAG readiness)
+        is_video_course = book_info.get("content_format") == "video"
+        wants_video_mp4 = "video" in formats or "video-chapters" in formats
+        if (
+            "markdown" in formats
+            or "md" in formats
+            or "markdown-chapters" in formats
+            or (is_video_course and wants_video_mp4)
+        ):
             report("generating_markdown", 92)
             md_plugin = self.kernel["markdown"]
             md_plugin.generate_book(book_info, chapters_data, book_dir)
             result.files["markdown"] = str(book_dir / "Markdown")
+
+        # Video MP4 + WebVTT subtitles
+        if wants_video_mp4:
+            videos_dir = self._download_video_streams(
+                chapters=chapters,
+                chapters_plugin=chapters_plugin,
+                book_dir=book_dir,
+                report=report,
+                check_cancel=check_cancel,
+            )
+            result.files["video"] = str(videos_dir)
 
         # PDF
         if "pdf" in formats or "all" in formats or "pdf-chapters" in formats:
@@ -457,6 +480,75 @@ class DownloaderPlugin(Plugin):
 
         report("completed", 100)
         return result
+
+    def _download_video_streams(
+        self,
+        chapters: list,
+        chapters_plugin,
+        book_dir: Path,
+        report: Callable,
+        check_cancel: Callable[[], bool],
+    ) -> Path:
+        """Download MP4 video files and WebVTT (.vtt) subtitles for video course lessons."""
+        import re
+
+        videos_dir = book_dir / "Videos"
+        videos_dir.mkdir(parents=True, exist_ok=True)
+
+        video_chapters = [
+            ch for ch in chapters if "/api/v1/videoclips/" in (ch.get("content_url") or "")
+        ]
+        total_vids = len(video_chapters)
+
+        for idx, ch in enumerate(video_chapters):
+            if check_cancel():
+                self._cleanup_on_cancel(book_dir)
+                raise Exception("Download cancelled by user")
+
+            pct = 92 + int((idx / max(total_vids, 1)) * 7)
+            ch_title = ch.get("title", f"Video {idx + 1}")
+            report(
+                "downloading_videos",
+                pct,
+                f"Downloading MP4 ({idx + 1}/{total_vids}): {ch_title}",
+                current_chapter=idx + 1,
+                total_chapters=total_vids,
+                chapter_title=ch_title,
+            )
+
+            stem = re.sub(r"\.(?:x?html?|xml)$", "", ch["filename"], flags=re.IGNORECASE)
+            clip_data = chapters_plugin.fetch_video_clip_data(ch["content_url"])
+
+            # 1. Write WebVTT (.vtt) subtitles alongside the video
+            vtt_text = chapters_plugin.format_webvtt(clip_data)
+            if vtt_text:
+                vtt_path = videos_dir / f"{stem}.vtt"
+                vtt_path.parent.mkdir(parents=True, exist_ok=True)
+                vtt_path.write_text(vtt_text, encoding="utf-8")
+
+            # 2. Download MP4 stream via Kaltura session
+            ref_id = clip_data.get("reference_id")
+            entry_id = clip_data.get("kaltura_entry_id")
+            if not ref_id or not entry_id:
+                continue
+
+            try:
+                mp4_url = chapters_plugin.get_kaltura_mp4_url(ref_id, entry_id)
+                if not mp4_url:
+                    continue
+                mp4_path = videos_dir / f"{stem}.mp4"
+                mp4_path.parent.mkdir(parents=True, exist_ok=True)
+                resp = self.http.session.get(
+                    mp4_url,
+                    allow_redirects=True,
+                    timeout=180,
+                )
+                if resp.status_code in (200, 206):
+                    mp4_path.write_bytes(resp.content)
+            except Exception as e:
+                print(f"[WARN] Failed to download MP4 for {ref_id}: {e}")
+
+        return videos_dir
 
     def _cleanup_on_cancel(self, book_dir: Path):
         """Clean up partially downloaded book on cancellation."""

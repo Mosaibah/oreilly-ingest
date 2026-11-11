@@ -99,7 +99,7 @@
     <!-- Main Content -->
     <main class="flex-1 max-w-4xl w-full mx-auto px-5 py-10">
         <!-- Search Section -->
-        <section class="mb-10">
+        <section class="mb-8">
             <div class="relative group">
                 <div class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-oreilly-blue">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +109,7 @@
                 <input
                     type="text"
                     id="search-input"
-                    placeholder="Search by title, author, or ISBN..."
+                    placeholder="Search books or video courses by title, author, or ISBN..."
                     class="w-full pl-12 pr-12 py-4 text-base bg-surface-50 border border-zinc-200 rounded-xl placeholder:text-zinc-400 focus:outline-none focus:bg-white focus:border-oreilly-blue focus:ring-4 focus:ring-oreilly-blue/10 transition-all duration-200"
                     autocomplete="off"
                 >
@@ -118,6 +118,19 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                     </svg>
+                </div>
+            </div>
+
+            <!-- Sort and Filter Controls -->
+            <div id="search-controls" class="hidden flex items-center justify-between mt-3 px-1 text-sm text-zinc-500">
+                <div id="results-count" class="font-medium text-zinc-700"></div>
+                <div class="flex items-center gap-2">
+                    <label for="sort-select" class="text-xs text-zinc-400 uppercase font-semibold tracking-wider">Sort by:</label>
+                    <select id="sort-select" class="bg-surface-50 border border-zinc-200 rounded-lg px-2.5 py-1 text-xs font-medium text-zinc-700 focus:outline-none focus:border-oreilly-blue">
+                        <option value="year-desc">Newest First (Year)</option>
+                        <option value="relevance">Relevance</option>
+                        <option value="year-asc">Oldest First</option>
+                    </select>
                 </div>
             </div>
         </section>

@@ -1,8 +1,8 @@
 # O'Reilly Ingest
 
-We're in the AI era. You want to chat with your favorite technical books using Claude Code, Cursor, or any LLM tool. This gets you there.
+We're in the AI era. You want to chat with your favorite technical books and video courses using Claude Code, Cursor, or any LLM/RAG tool. This gets you there.
 
-Export any O'Reilly book to Markdown, PDF, EPUB, JSON, TOON, or plain text. Download by chapters so you don't burn through your context window.
+Export any O'Reilly book or video course to Markdown, Chunks (RAG), PDF, EPUB, JSON, TOON, or plain text. Download by chapters/lessons so you don't burn through your context window. For video courses, optionally download high-definition MP4 streams and synchronized WebVTT subtitles alongside structured Markdown transcripts.
 
 > Requires a valid O'Reilly Learning subscription.
 
@@ -17,12 +17,17 @@ Inspired by [safaribooks](https://github.com/lorenzodifuccia/safaribooks) by [@l
 
 ## Features
 
-- **Export by chapters** - save tokens, focus on what matters
-- **LLM-ready formats** - Markdown, JSON, TOON, plain text optimized for AI
+- **Books & Video Courses** - seamless support for both written books and full video courses
+- **Syllabus & Hands-On Exercises** - generates course syllabus (`000_course_syllabus_and_exercises.md`) with module structure, exercise repo links, and quizzes
+- **Timestamped Transcripts** - sentence-aligned transcripts with `[MM:SS - MM:SS]` timestamps per video lesson, ready for RAG citations
+- **Multi-Format Video Exports** - choose between lightweight text transcripts (`Markdown`, `Chunks`, `JSON`) or direct video streams (`MP4 + VTT + MD`)
+- **Export by chapters/lessons** - save tokens, focus on what matters
+- **LLM-ready formats** - Markdown, Chunks, JSON, TOON, plain text optimized for AI
+- **Publication Freshness & Sorting** - publication year badges (`📅 2025`) and search sorting (`Newest First`, `Relevance`, `Oldest First`)
 - **Traditional formats** - PDF and EPUB 3
-- **O'Reilly V2 API** - fast and reliable
-- **Images & styles included** - complete book experience
-- **Web UI** - search, preview, download
+- **High-resolution covers** - print-quality 1200w book covers
+- **O'Reilly V2 API** - fast and reliable with resilient retry backoff
+- **Web UI** - search, preview, sort, and download
 
 <img src="docs/main.png" alt="Main Page">
 

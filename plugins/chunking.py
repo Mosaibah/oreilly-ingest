@@ -103,7 +103,10 @@ class ChunkingPlugin(Plugin):
                     }
                 )
 
-            overlap_chars = self._estimate_char_position(text, end - overlap * 4, overlap) if overlap > 0 else 0
+            if end >= text_len:
+                break
+
+            overlap_chars = overlap * 4 if overlap > 0 else 0
             next_start = end - min(overlap_chars, end - start - 1)
             start = max(next_start, start + 1)
 

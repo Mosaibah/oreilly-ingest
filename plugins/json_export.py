@@ -51,8 +51,12 @@ class JsonExportPlugin(Plugin):
         return {
             "metadata": {
                 "title": book_metadata.get("title", ""),
+                "content_format": book_metadata.get("content_format", "book"),
                 "authors": book_metadata.get("authors", []),
                 "isbn": book_metadata.get("isbn", ""),
+                "publication_date": book_metadata.get("publication_date", ""),
+                "duration_seconds": book_metadata.get("duration_seconds"),
+                "resources": book_metadata.get("resources", []),
                 "publisher": (
                     book_metadata.get("publishers", [""])[0]
                     if book_metadata.get("publishers")

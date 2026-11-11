@@ -27,7 +27,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-from pycookiecheat import chrome_cookies
+from pycookiecheat import BrowserType, chrome_cookies
 
 ORME_URL = "https://learning.oreilly.com/"
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -79,14 +79,34 @@ def main() -> int:
         return 0
 
 
+def _read_browser_cookies() -> dict:
+    """Try reading O'Reilly cookies from Flatpak Chromium, native Chromium, or Chrome."""
+    cookie_files = [
+        Path.home() / ".var/app/org.chromium.Chromium/config/chromium/Default/Cookies",
+        Path.home() / ".config/chromium/Default/Cookies",
+        Path.home() / ".config/google-chrome/Default/Cookies",
+    ]
+    for cf in cookie_files:
+        if not cf.exists():
+            continue
+        for browser in (BrowserType.CHROMIUM, BrowserType.CHROME):
+            try:
+                c = chrome_cookies(ORME_URL, cookie_file=cf, browser=browser)
+                if c and c.get("orm-jwt"):
+                    return c
+            except Exception:
+                continue
+    return {}
+
+
 def refresh_once(args) -> int:
-    """Read cookies from Chrome, write them to the app's cookies file, and reload
+    """Read cookies from Chrome/Chromium, write them to the app's cookies file, and reload
     the running app. Returns 0 on success, 1 on a fatal read error."""
     try:
-        cookies = chrome_cookies(ORME_URL)
+        cookies = _read_browser_cookies()
     except Exception as e:  # noqa: BLE001 - surface any Keychain/DB error clearly
-        print(f"ERROR: could not read Chrome cookies: {e}", file=sys.stderr)
-        print("Make sure Chrome is installed and you approved the Keychain prompt.", file=sys.stderr)
+        print(f"ERROR: could not read browser cookies: {e}", file=sys.stderr)
+        print("Make sure Chromium/Chrome is installed and logged in.", file=sys.stderr)
         return 1
 
     jwt = cookies.get("orm-jwt")

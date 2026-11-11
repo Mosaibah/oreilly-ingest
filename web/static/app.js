@@ -7,6 +7,7 @@ const API = '';
 let currentExpandedCard = null;
 let selectedResultIndex = -1;
 let defaultOutputDir = '';
+let currentSearchResults = [];
 const chaptersCache = {};
 
 /**
@@ -108,9 +109,49 @@ async function loadDefaultOutputDir() {
     }
 }
 
+function renderSearchResults() {
+    const container = document.getElementById('search-results');
+    const controls = document.getElementById('search-controls');
+    const countEl = document.getElementById('results-count');
+    const sortSelect = document.getElementById('sort-select');
+    const sortMode = sortSelect ? sortSelect.value : 'year-desc';
+
+    container.innerHTML = '';
+    container.classList.remove('has-expanded');
+    currentExpandedCard = null;
+    selectedResultIndex = -1;
+
+    if (!currentSearchResults || currentSearchResults.length === 0) {
+        if (controls) controls.classList.add('hidden');
+        return;
+    }
+
+    if (controls) controls.classList.remove('hidden');
+    if (countEl) countEl.textContent = `${currentSearchResults.length} result(s) found`;
+
+    // Clone array before sorting
+    const sorted = [...currentSearchResults];
+    if (sortMode === 'year-desc') {
+        sorted.sort((a, b) => (b.publication_year || 0) - (a.publication_year || 0));
+    } else if (sortMode === 'year-asc') {
+        sorted.sort((a, b) => (a.publication_year || 9999) - (b.publication_year || 9999));
+    }
+
+    for (const book of sorted) {
+        const div = document.createElement('article');
+        div.className = 'book-card group bg-white rounded-xl border border-zinc-200 overflow-hidden transition-all duration-200 hover:border-zinc-300 hover:shadow-card-hover';
+        div.dataset.bookId = book.id;
+        div.innerHTML = createBookCardHTML(book);
+
+        setupBookCardEvents(div, book);
+        container.appendChild(div);
+    }
+}
+
 async function search(query) {
     const loader = document.getElementById('search-loader');
     const container = document.getElementById('search-results');
+    const controls = document.getElementById('search-controls');
 
     loader.classList.remove('hidden');
 
@@ -119,32 +160,23 @@ async function search(query) {
         const data = await res.json();
 
         loader.classList.add('hidden');
-        container.innerHTML = '';
-        container.classList.remove('has-expanded');
-        currentExpandedCard = null;
-        selectedResultIndex = -1;
+        currentSearchResults = data.results || [];
 
-        if (!data.results || data.results.length === 0) {
+        if (!currentSearchResults.length) {
+            if (controls) controls.classList.add('hidden');
             container.innerHTML = `
                 <div class="text-center py-16 text-zinc-500">
-                    <p class="text-lg">No books found for "${query}"</p>
+                    <p class="text-lg">No books or courses found for "${query}"</p>
                     <p class="text-sm mt-2 text-zinc-400">Try a different search term or ISBN</p>
                 </div>
             `;
             return;
         }
 
-        for (const book of data.results) {
-            const div = document.createElement('article');
-            div.className = 'book-card group bg-white rounded-xl border border-zinc-200 overflow-hidden transition-all duration-200 hover:border-zinc-300 hover:shadow-card-hover';
-            div.dataset.bookId = book.id;
-            div.innerHTML = createBookCardHTML(book);
-
-            setupBookCardEvents(div, book);
-            container.appendChild(div);
-        }
+        renderSearchResults();
     } catch (err) {
         loader.classList.add('hidden');
+        if (controls) controls.classList.add('hidden');
         container.innerHTML = `
             <div class="text-center py-16 text-red-600">
                 <p>Search failed. Please try again.</p>
@@ -154,12 +186,19 @@ async function search(query) {
 }
 
 function createBookCardHTML(book) {
+    const isVideo = book.content_format === 'video';
+    const typeBadge = isVideo
+        ? '<span class="inline-flex items-center px-1.5 py-0.5 ml-2 text-[0.625rem] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 rounded">Video Course</span>'
+        : '';
+    const yearBadge = book.publication_year
+        ? `<span class="inline-flex items-center px-1.5 py-0.5 ml-1.5 text-[0.625rem] font-bold bg-zinc-100 text-zinc-700 rounded border border-zinc-200">📅 ${book.publication_year}</span>`
+        : '';
     return `
         <!-- Collapsed Summary -->
         <div class="book-summary flex items-center gap-4 p-4 cursor-pointer">
             <img src="${book.cover_url}" alt="${book.title} cover" class="w-12 h-16 object-cover rounded shadow-sm flex-shrink-0" loading="lazy">
             <div class="flex-1 min-w-0">
-                <h3 class="text-[0.9375rem] font-semibold text-zinc-900 leading-snug truncate">${book.title}</h3>
+                <h3 class="text-[0.9375rem] font-semibold text-zinc-900 leading-snug truncate">${book.title}${typeBadge}${yearBadge}</h3>
                 <p class="text-sm text-zinc-500 truncate">${book.authors?.join(', ') || 'Unknown Author'}</p>
             </div>
             <svg class="expand-icon w-5 h-5 text-zinc-400 flex-shrink-0 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -183,6 +222,10 @@ function createBookCardHTML(book) {
                     <div class="flex-1 min-w-0">
                         <h2 class="text-xl font-semibold text-zinc-900 leading-tight mb-1">${book.title}</h2>
                         <p class="text-[0.9375rem] text-zinc-500 mb-3">by ${book.authors?.join(', ') || 'Unknown Author'}</p>
+                        <p class="text-sm text-zinc-500 mb-0.5">
+                            <span class="text-zinc-400">Year:</span>
+                            <span class="text-zinc-700 font-semibold">${book.publication_year ? `📅 ${book.publication_year}` : 'Unknown'}</span>
+                        </p>
                         <p class="text-sm text-zinc-500 mb-0.5">
                             <span class="text-zinc-400">Publisher:</span>
                             <span class="publisher-value text-zinc-500 animate-pulse-subtle">Loading...</span>
@@ -287,6 +330,18 @@ function createBookCardHTML(book) {
                                     EPUB
                                 </span>
                             </label>
+                            ${isVideo ? `
+                            <label class="format-option cursor-pointer relative">
+                                <input type="radio" name="format" value="video" class="sr-only peer">
+                                <span class="flex items-center gap-1.5 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-600 transition-all peer-checked:border-oreilly-blue peer-checked:bg-oreilly-blue-light peer-checked:text-oreilly-blue-dark hover:bg-white hover:border-zinc-300">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <polygon points="5 3 19 12 5 21 5 3"/>
+                                    </svg>
+                                    MP4 + VTT + MD
+                                </span>
+                                <span class="absolute -top-1.5 -right-1.5 text-[0.5rem] font-bold uppercase px-1 py-px bg-amber-500 text-white rounded shadow-sm peer-checked:bg-oreilly-blue">VIDEO</span>
+                            </label>
+                            ` : ''}
                         </div>
                     </div>
 
@@ -649,7 +704,13 @@ async function expandBook(cardElement, bookId) {
         publisherEl.textContent = book.publishers?.join(', ') || 'Unknown';
         publisherEl.classList.remove('animate-pulse-subtle');
 
-        pagesEl.textContent = book.virtual_pages || 'N/A';
+        if (book.content_format === 'video' && book.duration_seconds) {
+            const hrs = Math.floor(book.duration_seconds / 3600);
+            const mins = Math.floor((book.duration_seconds % 3600) / 60);
+            pagesEl.textContent = `${hrs}h ${mins}m (Video Course)`;
+        } else {
+            pagesEl.textContent = book.virtual_pages || 'N/A';
+        }
         pagesEl.classList.remove('animate-pulse-subtle');
 
         descEl.innerHTML = book.description || 'No description available.';
@@ -687,7 +748,7 @@ function renderChapters(cardElement, chapters) {
         <label class="chapter-item flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 transition-colors">
             <input type="checkbox" class="chapter-checkbox w-4 h-4 rounded border-zinc-300 text-oreilly-blue focus:ring-oreilly-blue/20" data-index="${ch.index}" checked>
             <span class="flex-1 text-sm text-zinc-700 truncate">${ch.title || 'Chapter ' + (ch.index + 1)}</span>
-            ${ch.pages ? `<span class="text-xs text-zinc-400 flex-shrink-0">${ch.pages}p</span>` : ''}
+            ${ch.pages ? `<span class="text-xs text-zinc-400 flex-shrink-0">${ch.pages}p</span>` : (ch.minutes ? `<span class="text-xs text-zinc-400 flex-shrink-0">${ch.minutes}m</span>` : '')}
         </label>
     `).join('');
 
@@ -908,6 +969,7 @@ async function pollProgress(cardElement) {
                 }
             }
             if (data.markdown) filesHTML += createFileResultHTML('Markdown', data.markdown);
+            if (data.video) filesHTML += createFileResultHTML('Videos (MP4+VTT)', data.video);
             if (data.plaintext) filesHTML += createFileResultHTML('Plain Text', data.plaintext);
             if (data.json) filesHTML += createFileResultHTML('JSON', data.json);
             if (data.chunks) filesHTML += createFileResultHTML('Chunks', data.chunks);
@@ -1037,9 +1099,20 @@ document.addEventListener('DOMContentLoaded', () => {
             searchTimeout = setTimeout(() => search(query), 300);
         } else if (query.length === 0) {
             document.getElementById('search-results').innerHTML = '';
+            const controls = document.getElementById('search-controls');
+            if (controls) controls.classList.add('hidden');
+            currentSearchResults = [];
             currentExpandedCard = null;
         }
     });
+
+    // Sort select change
+    const sortSelect = document.getElementById('sort-select');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', () => {
+            renderSearchResults();
+        });
+    }
 
     // Click outside to collapse
     document.addEventListener('click', (e) => {
