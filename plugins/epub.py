@@ -1,9 +1,11 @@
 import html
+import posixpath
 import re
 import shutil
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from .base import Plugin
 from utils import sanitize_filename, slugify
@@ -22,12 +24,16 @@ class EpubPlugin(Plugin):
         oebps = output_dir / "OEBPS"
         oebps.mkdir(parents=True, exist_ok=True)
         (output_dir / "META-INF").mkdir(exist_ok=True)
+        resource_names = self._build_resource_name_map(chapters)
 
         self._write_mimetype(output_dir)
         self._write_container_xml(output_dir)
-        self._write_content_opf(oebps, book_info, chapters, css_files, cover_image)
+        self._write_content_opf(
+            oebps, book_info, chapters, css_files, cover_image, resource_names
+        )
         self._write_toc_ncx(oebps, book_info, toc)
         self._write_nav_xhtml(oebps, book_info, toc)
+        self._rewrite_document_references(oebps, resource_names)
 
         # Use sanitized title for epub filename
         epub_name = sanitize_filename(book_info.get("title", book_info["id"]))
@@ -71,6 +77,7 @@ class EpubPlugin(Plugin):
         chapters: list[dict],
         css_files: list[str],
         cover_image: str | None,
+        resource_names: dict[str, str],
     ):
         title = html.escape(book_info.get("title", "Unknown"))
         authors = book_info.get("authors", [])
@@ -94,7 +101,7 @@ class EpubPlugin(Plugin):
         ]
 
         for i, ch in enumerate(chapters):
-            filename = ch["filename"].replace(".html", ".xhtml")
+            filename = resource_names[ch["filename"]]
             item_id = f"ch{i:03d}"
             manifest_items.append(
                 f'    <item id="{item_id}" href="{filename}" media-type="application/xhtml+xml"/>'
@@ -208,7 +215,6 @@ class EpubPlugin(Plugin):
             nav_id = item.get("fragment") or item.get("ourn", "").split(":")[-1].replace(".html", "")
             label = html.escape(item.get("title", ""))
             href = item.get("reference_id", "").split("-/")[-1] if item.get("reference_id") else ""
-            href = href.replace(".html", ".xhtml")
 
             if item.get("fragment"):
                 href = f"{href}#{item['fragment']}"
@@ -236,7 +242,6 @@ class EpubPlugin(Plugin):
         for item in toc_items:
             label = html.escape(item.get("title", ""))
             href = item.get("reference_id", "").split("-/")[-1] if item.get("reference_id") else ""
-            href = href.replace(".html", ".xhtml")
 
             if item.get("fragment"):
                 href = f"{href}#{item['fragment']}"
@@ -254,6 +259,74 @@ class EpubPlugin(Plugin):
                 result.append(f'{spaces}<li><a href="{href}">{label}</a></li>')
 
         return "\n".join(result)
+
+    def _build_resource_name_map(self, chapters: list[dict]) -> dict[str, str]:
+        return {
+            chapter["filename"]: re.sub(
+                r"\.html$", ".xhtml", chapter["filename"]
+            )
+            for chapter in chapters
+        }
+
+    def _rewrite_document_references(
+        self, oebps: Path, resource_names: dict[str, str]
+    ) -> None:
+        documents = list(oebps.rglob("*.xhtml")) + [oebps / "toc.ncx"]
+        for document in documents:
+            if not document.exists():
+                continue
+            document_name = document.relative_to(oebps).as_posix()
+            content = document.read_text(encoding="utf-8")
+            rewritten = self._rewrite_resource_references(
+                content, document_name, resource_names
+            )
+            if rewritten != content:
+                document.write_text(rewritten, encoding="utf-8")
+
+    def _rewrite_resource_references(
+        self,
+        content: str,
+        document_name: str,
+        resource_names: dict[str, str],
+    ) -> str:
+        document_dir = posixpath.dirname(document_name)
+
+        def rewrite_attribute(match: re.Match) -> str:
+            reference = match.group("value")
+            parsed = urlsplit(reference)
+            if parsed.scheme or parsed.netloc or not parsed.path:
+                return match.group(0)
+
+            source_name = posixpath.normpath(
+                posixpath.join(document_dir, parsed.path)
+            )
+            target_name = resource_names.get(source_name)
+            if not target_name or target_name == source_name:
+                return match.group(0)
+
+            relative_target = posixpath.relpath(target_name, document_dir or ".")
+            rewritten = urlunsplit(
+                ("", "", relative_target, parsed.query, parsed.fragment)
+            )
+            return (
+                f'{match.group("attribute")}{match.group("quote")}'
+                f'{rewritten}{match.group("quote")}'
+            )
+
+        def rewrite_tag(match: re.Match) -> str:
+            return re.sub(
+                r'(?P<attribute>\b(?:href|src)\s*=\s*)'
+                r'(?P<quote>["\'])(?P<value>.*?)(?P=quote)',
+                rewrite_attribute,
+                match.group(0),
+                flags=re.IGNORECASE,
+            )
+
+        return re.sub(
+            r"<[A-Za-z][^>]*>",
+            rewrite_tag,
+            content,
+        )
 
     def _get_max_depth(self, toc_items: list[dict], current: int = 1) -> int:
         max_d = current
