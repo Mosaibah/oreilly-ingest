@@ -47,9 +47,12 @@ class DownloaderHandler(SimpleHTTPRequestHandler):
         elif path == "/api/search":
             params = parse_qs(parsed.query)
             query = params.get("q", params.get("query", [""]))[0]
-            self._handle_search(query)
+            language = params.get("language", [""])[0] or None
+            self._handle_search(query, language)
         elif match := re.match(r"/api/book/([^/]+)/chapters$", path):
             self._handle_chapters_list(match.group(1))
+        elif match := re.match(r"/api/book/([^/]+)/translations$", path):
+            self._handle_book_translations(match.group(1))
         elif match := re.match(r"/api/book/([^/]+)$", path):
             self._handle_book_info(match.group(1))
         elif path == "/api/progress":
@@ -93,14 +96,28 @@ class DownloaderHandler(SimpleHTTPRequestHandler):
         status = auth.get_status()
         self._send_json(status)
 
-    def _handle_search(self, query: str):
+    def _handle_search(self, query: str, language: str | None = None):
         if not query:
             self._send_json({"results": []})
             return
 
         book = self.kernel["book"]
-        results = book.search(query)
-        self._send_json({"results": results})
+        try:
+            results = book.search(query, language=language)
+            self._send_json({"results": results})
+        except Exception as e:
+            # Search needs a fresh (non-expired) session JWT; downloads by
+            # ISBN/URL keep working even when it expires.
+            self._send_json({"error": str(e)}, 400)
+
+    def _handle_book_translations(self, book_id: str):
+        """Return candidate editions of this book in other languages."""
+        book = self.kernel["book"]
+        try:
+            translations = book.find_translations(book_id)
+            self._send_json({"translations": translations})
+        except Exception as e:
+            self._send_json({"error": str(e)}, 400)
 
     def _handle_book_info(self, book_id: str):
         book = self.kernel["book"]

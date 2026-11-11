@@ -8,11 +8,35 @@ let currentExpandedCard = null;
 let selectedResultIndex = -1;
 let defaultOutputDir = '';
 const chaptersCache = {};
+const translationsCache = {};
 
-/**
- * Get high-resolution cover URL for expanded view.
- * O'Reilly provides larger covers at /covers/urn:orm:book:{id}/400w/
- */
+const LANGUAGE_LABELS = {
+    en: 'English',
+    ja: '日本語',
+    zh: '中文',
+    es: 'Español',
+    fr: 'Français',
+    de: 'Deutsch',
+    it: 'Italiano',
+    pt: 'Português',
+    ru: 'Русский',
+    ko: '한국어',
+};
+
+const CJK_RE = /[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uAC00-\uD7AF]/;
+
+function getSelectedLanguage() {
+    const select = document.getElementById('language-select');
+    return select ? select.value : '';
+}
+
+/** Small badge for non-English editions (e.g. translated books). */
+function languageBadge(language) {
+    if (!language || language === 'en') return '';
+    const label = LANGUAGE_LABELS[language] || language.toUpperCase();
+    return `<span class="ml-1 inline-block px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide bg-oreilly-blue-light text-oreilly-blue-dark rounded align-middle">${label}</span>`;
+}
+
 function getHighResCoverUrl(bookId) {
     return `https://learning.oreilly.com/covers/urn:orm:book:${bookId}/400w/`;
 }
@@ -111,11 +135,14 @@ async function loadDefaultOutputDir() {
 async function search(query) {
     const loader = document.getElementById('search-loader');
     const container = document.getElementById('search-results');
+    const language = getSelectedLanguage();
 
     loader.classList.remove('hidden');
 
     try {
-        const res = await fetch(`${API}/api/search?q=${encodeURIComponent(query)}`);
+        let url = `${API}/api/search?q=${encodeURIComponent(query)}`;
+        if (language) url += `&language=${encodeURIComponent(language)}`;
+        const res = await fetch(url);
         const data = await res.json();
 
         loader.classList.add('hidden');
@@ -124,11 +151,25 @@ async function search(query) {
         currentExpandedCard = null;
         selectedResultIndex = -1;
 
+        if (data.error) {
+            container.innerHTML = `
+                <div class="text-center py-16 text-red-600">
+                    <p class="text-lg">Search failed</p>
+                    <p class="text-sm mt-2 text-zinc-500 max-w-md mx-auto">${data.error}<br>
+                    Search needs a fresh session token — set new cookies, or paste a book URL / ISBN below instead (downloads keep working).</p>
+                </div>
+            `;
+            return;
+        }
+
         if (!data.results || data.results.length === 0) {
+            const cjkHint = CJK_RE.test(query)
+                ? `<p class="text-[0.8125rem] mt-3 text-zinc-400 max-w-md mx-auto leading-relaxed">Note: translated titles (Japanese/Chinese/etc.) cannot be matched by keyword search. Use the Language filter above, paste the book's URL, or search by ISBN.</p>`
+                : `<p class="text-sm mt-2 text-zinc-400">Try a different search term or ISBN</p>`;
             container.innerHTML = `
                 <div class="text-center py-16 text-zinc-500">
                     <p class="text-lg">No books found for "${query}"</p>
-                    <p class="text-sm mt-2 text-zinc-400">Try a different search term or ISBN</p>
+                    ${cjkHint}
                 </div>
             `;
             return;
@@ -157,9 +198,9 @@ function createBookCardHTML(book) {
     return `
         <!-- Collapsed Summary -->
         <div class="book-summary flex items-center gap-4 p-4 cursor-pointer">
-            <img src="${book.cover_url}" alt="${book.title} cover" class="w-12 h-16 object-cover rounded shadow-sm flex-shrink-0" loading="lazy">
+            <img src="${book.cover_url || getHighResCoverUrl(book.id)}" alt="${book.title} cover" class="w-12 h-16 object-cover rounded shadow-sm flex-shrink-0" loading="lazy">
             <div class="flex-1 min-w-0">
-                <h3 class="text-[0.9375rem] font-semibold text-zinc-900 leading-snug truncate">${book.title}</h3>
+                <h3 class="text-[0.9375rem] font-semibold text-zinc-900 leading-snug truncate">${book.title}${languageBadge(book.language)}</h3>
                 <p class="text-sm text-zinc-500 truncate">${book.authors?.join(', ') || 'Unknown Author'}</p>
             </div>
             <svg class="expand-icon w-5 h-5 text-zinc-400 flex-shrink-0 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -186,6 +227,10 @@ function createBookCardHTML(book) {
                         <p class="text-sm text-zinc-500 mb-0.5">
                             <span class="text-zinc-400">Publisher:</span>
                             <span class="publisher-value text-zinc-500 animate-pulse-subtle">Loading...</span>
+                        </p>
+                        <p class="text-sm text-zinc-500 mb-0.5">
+                            <span class="text-zinc-400">Language:</span>
+                            <span class="language-value text-zinc-500 animate-pulse-subtle">Loading...</span>
                         </p>
                         <p class="text-sm text-zinc-500 mb-3">
                             <span class="text-zinc-400">Pages:</span>
@@ -609,6 +654,14 @@ async function expandBook(cardElement, bookId) {
         collapseBook();
     }
 
+    // Drop translations loaded for previously expanded books, except sections
+    // that contain the card the user just clicked (e.g. a translated edition).
+    document.querySelectorAll('.translations-section').forEach(section => {
+        if (!section.contains(cardElement)) {
+            section.remove();
+        }
+    });
+
     if (cardElement.classList.contains('expanded')) {
         return;
     }
@@ -643,17 +696,23 @@ async function expandBook(cardElement, bookId) {
         const book = await res.json();
 
         const publisherEl = expanded.querySelector('.publisher-value');
+        const languageEl = expanded.querySelector('.language-value');
         const pagesEl = expanded.querySelector('.pages-value');
         const descEl = expanded.querySelector('.book-description');
 
         publisherEl.textContent = book.publishers?.join(', ') || 'Unknown';
         publisherEl.classList.remove('animate-pulse-subtle');
 
+        languageEl.textContent = LANGUAGE_LABELS[book.language] || book.language || 'English';
+        languageEl.classList.remove('animate-pulse-subtle');
+
         pagesEl.textContent = book.virtual_pages || 'N/A';
         pagesEl.classList.remove('animate-pulse-subtle');
 
         descEl.innerHTML = book.description || 'No description available.';
         descEl.classList.remove('animate-pulse-subtle');
+
+        loadTranslations(cardElement, book);
     } catch (error) {
         const descEl = expanded.querySelector('.book-description');
         descEl.textContent = 'Failed to load details.';
@@ -677,7 +736,58 @@ function collapseBook() {
 
         document.getElementById('search-results').classList.remove('has-expanded');
         currentExpandedCard = null;
+
+        // Clean up any translation sections
+        document.querySelectorAll('.translations-section').forEach(section => section.remove());
     }
+}
+
+/**
+ * Load editions of this book in other languages (e.g. the Japanese version of
+ * an English title) and render them as interactive book cards under it.
+ */
+async function loadTranslations(cardElement, book) {
+    if (!book?.id || translationsCache[book.id] === undefined) {
+        try {
+            const res = await fetch(`${API}/api/book/${book.id}/translations`);
+            const data = await res.json();
+            translationsCache[book.id] = data.error ? [] : (data.translations || []);
+        } catch (err) {
+            console.error('Translations load failed:', err);
+            translationsCache[book.id] = [];
+        }
+    }
+
+    // The card may have been collapsed/removed while the request was in flight.
+    if (!cardElement.isConnected) return;
+
+    const translations = translationsCache[book.id] || [];
+    const sectionId = `translations-${book.id}`;
+    if (!translations.length || document.getElementById(sectionId)) return;
+
+    const section = document.createElement('div');
+    section.id = sectionId;
+    section.className = 'translations-section mt-3';
+    section.innerHTML = `
+        <div class="flex items-center gap-2 mb-2 px-1">
+            <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span class="text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-400">Other language editions</span>
+        </div>
+    `;
+
+    for (const t of translations) {
+        const div = document.createElement('article');
+        div.className = 'book-card group bg-white rounded-xl border border-zinc-200 overflow-hidden transition-all duration-200 hover:border-zinc-300 hover:shadow-card-hover mb-2';
+        div.dataset.bookId = t.id;
+        div.innerHTML = createBookCardHTML(t);
+        setupBookCardEvents(div, t);
+        section.appendChild(div);
+    }
+
+    cardElement.after(section);
 }
 
 function renderChapters(cardElement, chapters) {
@@ -1011,24 +1121,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Copy console command in cookie modal
     const copyBtn = document.getElementById('copy-command-btn');
-    copyBtn.onclick = async () => {
-        const command = document.getElementById('cookie-command').textContent;
-        try {
-            await navigator.clipboard.writeText(command);
-            copyBtn.textContent = 'Copied!';
-        } catch {
-            copyBtn.textContent = 'Copy failed';
-        }
-        copyBtn.disabled = true;
-        setTimeout(() => {
-            copyBtn.textContent = 'Copy';
-            copyBtn.disabled = false;
-        }, 2000);
-    };
+    if (copyBtn) {
+        copyBtn.onclick = async () => {
+            const command = document.getElementById('cookie-command').textContent;
+            try {
+                await navigator.clipboard.writeText(command);
+                copyBtn.textContent = 'Copied!';
+            } catch {
+                copyBtn.textContent = 'Copy failed';
+            }
+            copyBtn.disabled = true;
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+                copyBtn.disabled = false;
+            }, 2000);
+        };
+    }
 
     // Search
     let searchTimeout;
     const searchInput = document.getElementById('search-input');
+    const languageSelect = document.getElementById('language-select');
 
     searchInput.addEventListener('input', (e) => {
         clearTimeout(searchTimeout);
@@ -1041,9 +1154,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Click outside to collapse
+    // Re-run the current search when the language filter changes
+    languageSelect.addEventListener('change', () => {
+        const query = searchInput.value.trim();
+        if (query.length >= 2) {
+            clearTimeout(searchTimeout);
+            search(query);
+        }
+    });
+
+    // Click outside to collapse (ignore clicks on translation edition cards so
+    // they expand themselves rather than collapsing the current card)
     document.addEventListener('click', (e) => {
-        if (currentExpandedCard && !currentExpandedCard.contains(e.target)) {
+        if (currentExpandedCard
+            && !currentExpandedCard.contains(e.target)
+            && !e.target.closest('.translations-section')) {
             collapseBook();
         }
     });

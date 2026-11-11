@@ -177,14 +177,16 @@ class PdfPlugin(Plugin):
 
             body = self._extract_chapter_body(xhtml_path, oebps)
             chapter_title = self._escape_html(chapter.get("title", f"Chapter {i+1}"))
+            lang_attr, cjk_css = self._get_language_style(book_info)
 
             chapter_html = f'''<!DOCTYPE html>
-<html>
+<html lang="{lang_attr}">
 <head>
     <meta charset="utf-8">
     <title>{chapter_title}</title>
     <style>{print_css}</style>
     <style>{original_css}</style>
+    <style>{cjk_css}</style>
 </head>
 <body>
     <section class="chapter">
@@ -243,14 +245,16 @@ class PdfPlugin(Plugin):
 
         chapters_html = "\n".join(chapters_html_parts)
         title = self._escape_html(book_info.get("title", "Untitled"))
+        lang_attr, cjk_css = self._get_language_style(book_info)
 
         return f'''<!DOCTYPE html>
-<html>
+<html lang="{lang_attr}">
 <head>
     <meta charset="utf-8">
     <title>{title}</title>
     <style>{print_css}</style>
     <style>{original_css}</style>
+    <style>{cjk_css}</style>
 </head>
 <body>
     {cover_html}
@@ -370,6 +374,33 @@ class PdfPlugin(Plugin):
                 ))
 
         return "\n".join(css_parts)
+
+    def _get_language_style(self, book_info: dict) -> tuple[str, str]:
+        """Return (html lang attribute, extra CSS) for CJK book languages.
+
+        O'Reilly book stylesheets assume Latin fonts; Japanese/Chinese/Korean
+        editions would render tofu in the generated PDF without an explicit
+        fallback stack. The CSS is appended after the book's own styles so it
+        wins the cascade where it matters.
+        """
+        lang = (book_info.get("language") or "")[:2].lower()
+        if lang not in ("ja", "zh", "ko"):
+            return lang or "", ""
+
+        stacks = {
+            "ja": '"Hiragino Mincho ProN", "Hiragino Sans", "Yu Mincho", '
+                  '"Noto Serif CJK JP", "Noto Sans CJK JP", '
+                  '"Source Han Serif JP", "Source Han Sans JP", "MS PMincho"',
+            "zh": '"Songti SC", "Hiragino Sans GB", "Noto Serif CJK SC", '
+                  '"Noto Sans CJK SC", "Source Han Serif SC", "SimSun"',
+            "ko": '"Apple SD Gothic Neo", "Nanum Myeongjo", '
+                  '"Noto Serif CJK KR", "Noto Sans CJK KR", "Malgun Gothic"',
+        }
+        css = (
+            f'body, .chapter, .chapter-title {{ font-family: {stacks[lang]}, serif; }}\n'
+            f':lang({lang}) {{ word-break: normal; overflow-wrap: anywhere; }}'
+        )
+        return lang, css
 
     def _get_print_css(self) -> str:
         """Return print-specific CSS for PDF generation."""

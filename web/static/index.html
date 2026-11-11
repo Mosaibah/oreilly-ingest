@@ -120,6 +120,26 @@
                     </svg>
                 </div>
             </div>
+            <div class="mt-2.5 flex items-center gap-2.5 px-1">
+                <label for="language-select" class="text-xs font-medium text-zinc-400">Language</label>
+                <select
+                    id="language-select"
+                    class="text-xs bg-white border border-zinc-200 rounded-lg px-2 py-1 text-zinc-600 cursor-pointer focus:outline-none focus:border-oreilly-blue focus:ring-2 focus:ring-oreilly-blue/10 transition-colors"
+                >
+                    <option value="">All languages</option>
+                    <option value="en">English</option>
+                    <option value="ja">Japanese / 日本語</option>
+                    <option value="zh">Chinese / 中文</option>
+                    <option value="es">Spanish / Español</option>
+                    <option value="fr">French / Français</option>
+                    <option value="de">German / Deutsch</option>
+                    <option value="it">Italian / Italiano</option>
+                    <option value="pt">Portuguese</option>
+                    <option value="ru">Russian / Русский</option>
+                    <option value="ko">Korean / 한국어</option>
+                </select>
+                <span class="ml-auto text-[0.6875rem] text-zinc-400 hidden md:block">Tip: paste a book URL or ISBN (e.g. translated editions) to open it directly</span>
+            </div>
         </section>
 
         <!-- Search Results -->
