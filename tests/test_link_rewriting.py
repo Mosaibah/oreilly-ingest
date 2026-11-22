@@ -97,9 +97,10 @@ class TestMarkdownLinkTargets(unittest.TestCase):
         )
 
     def test_images_untouched(self):
-        # _fix_image_paths intentionally prefixes ./Images/ (pre-existing behavior)
-        self.assertEqual(self.convert_href("Images/foo.png"), "./Images/foo.png")
-        self.assertEqual(self.convert_href("./Images/foo.png"), "./Images/foo.png")
+        # Link-target rewriting leaves Images/ paths alone; _fix_image_paths
+        # then points them at the shared OEBPS/Images directory.
+        self.assertEqual(self.convert_href("Images/foo.png"), "../OEBPS/Images/foo.png")
+        self.assertEqual(self.convert_href("./Images/foo.png"), "../OEBPS/Images/foo.png")
 
     def test_full_pipeline(self):
         """End-to-end: chapter HTML -> markdown with .md cross-chapter link."""
